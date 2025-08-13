@@ -1,0 +1,1916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Array Playground - Interactive JavaScript Array Methods</title>
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --secondary-color: #f3f4f6;
+            --accent-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --border-color: #d1d5db;
+            --bg-light: #f9fafb;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+            --border-radius: 0.5rem;
+            --transition: all 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: var(--bg-light);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 2rem;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        .header h1 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .readme-toggle {
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+            background: var(--secondary-color);
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .readme-toggle:hover {
+            background: var(--border-color);
+        }
+
+        .readme-content {
+            display: none;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-light);
+            border-radius: var(--border-radius);
+            text-align: left;
+        }
+
+        .readme-content.show {
+            display: block;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 1.5rem;
+            align-items: start;
+        }
+
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .panel {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 1rem;
+            background: var(--secondary-color);
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .panel-content {
+            padding: 1.5rem;
+        }
+
+        .array-view {
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-bottom: 1rem;
+            border-radius: var(--border-radius);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .array-container {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 100%;
+        }
+
+        .array-cell {
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: 0.375rem;
+            min-width: 60px;
+            text-align: center;
+            position: relative;
+            transition: var(--transition);
+            transform: scale(1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .array-cell.active {
+            background: var(--accent-color);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .array-cell.new {
+            animation: slideIn 0.3s ease;
+        }
+
+        .array-cell.removing {
+            animation: slideOut 0.3s ease;
+        }
+
+        .cell-index {
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            background: var(--primary-color);
+            color: white;
+            padding: 0.125rem 0.375rem;
+            border-radius: 0.25rem;
+        }
+
+        .array-info {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            justify-content: center;
+        }
+
+        .info-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .badge-length {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .badge-mutated {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .badge-immutable {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .method-group {
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+
+        .method-group-header {
+            padding: 0.75rem;
+            background: var(--secondary-color);
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .mutating {
+            border-color: var(--danger-color);
+        }
+
+        .mutating .method-group-header {
+            background: #fef2f2;
+            color: var(--danger-color);
+        }
+
+        .non-mutating {
+            border-color: var(--accent-color);
+        }
+
+        .non-mutating .method-group-header {
+            background: #f0fdf4;
+            color: var(--accent-color);
+        }
+
+        .method-buttons {
+            padding: 1rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 0.5rem;
+        }
+
+        .method-btn {
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            background: white;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.875rem;
+        }
+
+        .method-btn:hover {
+            background: var(--secondary-color);
+        }
+
+        .method-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .operation-inputs {
+            margin-bottom: 1rem;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .input-group input, .input-group textarea, .input-group select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            font-family: 'Courier New', monospace;
+            transition: var(--transition);
+        }
+
+        .input-group input:focus, .input-group textarea:focus, .input-group select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .run-button {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 1rem;
+        }
+
+        .run-button:hover {
+            background: #2563eb;
+        }
+
+        .run-button:disabled {
+            background: var(--border-color);
+            cursor: not-allowed;
+        }
+
+        .code-preview {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            font-family: 'Courier New', monospace;
+            margin-bottom: 1rem;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+        }
+
+        .history-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .history-item:hover {
+            background: var(--secondary-color);
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            color: var(--primary-color);
+        }
+
+        .history-result {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .history-controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .history-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            background: white;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .history-btn:hover {
+            background: var(--secondary-color);
+        }
+
+        .history-btn:disabled {
+            background: var(--border-color);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .playground-inputs {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+
+        .preset-btn {
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            background: white;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.875rem;
+        }
+
+        .preset-btn:hover {
+            background: var(--secondary-color);
+        }
+
+        .challenges-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .challenge-item {
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+
+        .challenge-header {
+            padding: 0.75rem;
+            background: var(--secondary-color);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: var(--transition);
+        }
+
+        .challenge-header:hover {
+            background: var(--border-color);
+        }
+
+        .challenge-status {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+        }
+
+        .challenge-status.completed {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .challenge-content {
+            display: none;
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .challenge-content.show {
+            display: block;
+        }
+
+        .challenge-description {
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .challenge-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .challenge-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            background: white;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.875rem;
+        }
+
+        .challenge-btn.primary {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .challenge-btn:hover {
+            background: var(--secondary-color);
+        }
+
+        .challenge-btn.primary:hover {
+            background: #2563eb;
+        }
+
+        .hint-content, .solution-content {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-light);
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+        }
+
+        .success-message {
+            color: var(--accent-color);
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        .error-message {
+            color: var(--danger-color);
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        .concept-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .concept-card {
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+
+        .concept-header {
+            padding: 0.75rem;
+            background: var(--secondary-color);
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .concept-header:hover {
+            background: var(--border-color);
+        }
+
+        .concept-content {
+            display: none;
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .concept-content.show {
+            display: block;
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip-content {
+            visibility: hidden;
+            width: 300px;
+            background: var(--text-primary);
+            color: white;
+            text-align: left;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            position: absolute;
+            z-index: 1000;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -150px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.875rem;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .tooltip:hover .tooltip-content {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .complexity-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background: var(--warning-color);
+            color: white;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-left: 0.5rem;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px) scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0) scale(1);
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                opacity: 1;
+                transform: scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .pulse {
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        @media (max-width: 1024px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .preset-buttons {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 0.5rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .method-buttons {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .preset-buttons {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .array-container {
+                gap: 0.25rem;
+            }
+            
+            .array-cell {
+                min-width: 50px;
+                padding: 0.5rem 0.75rem;
+            }
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        [role="button"]:focus,
+        button:focus,
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Array Playground</h1>
+            <p>Learn JavaScript array methods through interactive visualization and hands-on challenges</p>
+            <button class="readme-toggle" onclick="toggleReadme()" aria-expanded="false" aria-controls="readme-content">
+                📖 How to Use This Playground
+            </button>
+            <div id="readme-content" class="readme-content" role="region" aria-labelledby="readme-toggle">
+                <h3>Welcome to Array Playground!</h3>
+                <p><strong>Getting Started:</strong></p>
+                <ul>
+                    <li><strong>Array View:</strong> See your array visualized with indices and values</li>
+                    <li><strong>Operations:</strong> Choose from mutating (red) or non-mutating (green) methods</li>
+                    <li><strong>Inputs:</strong> Provide values, indices, or callback functions as needed</li>
+                    <li><strong>Run:</strong> Execute operations and see animated results</li>
+                    <li><strong>History:</strong> Track all operations with undo/redo capabilities</li>
+                </ul>
+                <p><strong>Features:</strong></p>
+                <ul>
+                    <li><strong>Live Preview:</strong> See the exact JavaScript code before execution</li>
+                    <li><strong>Time Complexity:</strong> Learn about performance characteristics</li>
+                    <li><strong>Challenges:</strong> Test your knowledge with guided exercises</li>
+                    <li><strong>Concepts:</strong> Understand key differences between array methods</li>
+                </ul>
+                <p><strong>Keyboard Navigation:</strong> Use Tab to move between controls, Enter to execute, Escape to clear inputs</p>
+            </div>
+        </header>
+
+        <div class="main-layout">
+            <div class="left-panel">
+                <div class="panel">
+                    <div class="panel-header">Array Visualization</div>
+                    <div class="panel-content">
+                        <div class="array-info">
+                            <span class="info-badge badge-length" id="length-badge">Length: 6</span>
+                            <span class="info-badge badge-immutable" id="mutation-badge">Original</span>
+                        </div>
+                        <div class="array-view" id="array-view" role="region" aria-label="Array visualization">
+                            <div class="array-container" id="array-container">
+                                <!-- Array cells will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">Playground Controls</div>
+                    <div class="panel-content">
+                        <div class="playground-inputs">
+                            <div class="input-group">
+                                <label for="seed-array">Seed Array (comma-separated values):</label>
+                                <input type="text" id="seed-array" value="5, 2, 9, 1, 5, 6" aria-describedby="seed-help">
+                                <small id="seed-help">Enter values separated by commas. Strings in quotes, numbers without.</small>
+                            </div>
+                            <div class="preset-buttons">
+                                <button class="preset-btn" onclick="loadPreset('numbers')" aria-label="Load numbers preset">Numbers</button>
+                                <button class="preset-btn" onclick="loadPreset('strings')" aria-label="Load strings preset">Strings</button>
+                                <button class="preset-btn" onclick="loadPreset('mixed')" aria-label="Load mixed types preset">Mixed</button>
+                                <button class="preset-btn" onclick="loadPreset('nested')" aria-label="Load nested arrays preset">Nested</button>
+                            </div>
+                            <button class="run-button" onclick="updateArray()" aria-label="Apply seed array changes">Update Array</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">Array Operations</div>
+                    <div class="panel-content">
+                        <div class="controls-grid">
+                            <div class="method-group mutating">
+                                <div class="method-group-header">🔴 Mutating Methods</div>
+                                <div class="method-buttons" id="mutating-methods">
+                                    <!-- Mutating method buttons will be populated here -->
+                                </div>
+                            </div>
+                            <div class="method-group non-mutating">
+                                <div class="method-group-header">🟢 Non-Mutating Methods</div>
+                                <div class="method-buttons" id="non-mutating-methods">
+                                    <!-- Non-mutating method buttons will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="operation-inputs" id="operation-inputs">
+                            <!-- Dynamic inputs will be populated here -->
+                        </div>
+
+                        <div class="code-preview" id="code-preview" role="region" aria-label="Code preview">
+                            Select a method to see the code preview
+                        </div>
+
+                        <button class="run-button" id="run-operation" onclick="runOperation()" disabled aria-label="Execute selected operation">
+                            Run Operation
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">Inspector & History</div>
+                    <div class="panel-content">
+                        <div class="history-controls">
+                            <button class="history-btn" id="undo-btn" onclick="undo()" disabled aria-label="Undo last operation">↶ Undo</button>
+                            <button class="history-btn" id="redo-btn" onclick="redo()" disabled aria-label="Redo next operation">↷ Redo</button>
+                            <button class="history-btn" onclick="clearHistory()" aria-label="Clear all history">🗑 Clear</button>
+                        </div>
+                        <div class="history-list" id="history-list" role="log" aria-label="Operation history">
+                            <!-- History items will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="panel">
+                    <div class="panel-header">Mini Challenges</div>
+                    <div class="panel-content">
+                        <div class="challenges-list" id="challenges-list">
+                            <!-- Challenges will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">Concept Cards</div>
+                    <div class="panel-content">
+                        <div class="concept-cards" id="concept-cards">
+                            <!-- Concept cards will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Application State
+        let state = {
+            currentArray: [5, 2, 9, 1, 5, 6],
+            history: [],
+            historyIndex: -1,
+            selectedMethod: null,
+            lastResult: null,
+            wasMutated: false,
+            challengeProgress: {}
+        };
+
+        // Method definitions with metadata
+        const methods = {
+            mutating: {
+                push: {
+                    signature: 'arr.push(...elements)',
+                    description: 'Adds elements to the end of array',
+                    complexity: 'O(1) amortized',
+                    inputs: ['value'],
+                    example: 'arr.push(42)'
+                },
+                pop: {
+                    signature: 'arr.pop()',
+                    description: 'Removes and returns last element',
+                    complexity: 'O(1)',
+                    inputs: [],
+                    example: 'arr.pop()'
+                },
+                shift: {
+                    signature: 'arr.shift()',
+                    description: 'Removes and returns first element',
+                    complexity: 'O(n)',
+                    inputs: [],
+                    example: 'arr.shift()'
+                },
+                unshift: {
+                    signature: 'arr.unshift(...elements)',
+                    description: 'Adds elements to the beginning of array',
+                    complexity: 'O(n)',
+                    inputs: ['value'],
+                    example: 'arr.unshift(42)'
+                },
+                splice: {
+                    signature: 'arr.splice(start, deleteCount, ...items)',
+                    description: 'Removes/adds elements at any position',
+                    complexity: 'O(n)',
+                    inputs: ['start', 'deleteCount', 'items'],
+                    example: 'arr.splice(2, 1, "new")'
+                },
+                sort: {
+                    signature: 'arr.sort([compareFn])',
+                    description: 'Sorts array in place',
+                    complexity: 'O(n log n)',
+                    inputs: ['compareFn'],
+                    example: 'arr.sort((a, b) => a - b)'
+                },
+                reverse: {
+                    signature: 'arr.reverse()',
+                    description: 'Reverses array in place',
+                    complexity: 'O(n)',
+                    inputs: [],
+                    example: 'arr.reverse()'
+                },
+                fill: {
+                    signature: 'arr.fill(value, start, end)',
+                    description: 'Fills array with static value',
+                    complexity: 'O(n)',
+                    inputs: ['value', 'start', 'end'],
+                    example: 'arr.fill(0, 1, 3)'
+                },
+                copyWithin: {
+                    signature: 'arr.copyWithin(target, start, end)',
+                    description: 'Copies sequence within array',
+                    complexity: 'O(n)',
+                    inputs: ['target', 'start', 'end'],
+                    example: 'arr.copyWithin(0, 3, 4)'
+                }
+            },
+            nonMutating: {
+                slice: {
+                    signature: 'arr.slice(start, end)',
+                    description: 'Returns shallow copy of portion',
+                    complexity: 'O(n)',
+                    inputs: ['start', 'end'],
+                    example: 'arr.slice(1, 3)'
+                },
+                concat: {
+                    signature: 'arr.concat(...values)',
+                    description: 'Returns new array with concatenated values',
+                    complexity: 'O(n)',
+                    inputs: ['values'],
+                    example: 'arr.concat([7, 8])'
+                },
+                map: {
+                    signature: 'arr.map(callback)',
+                    description: 'Returns new array with transformed elements',
+                    complexity: 'O(n)',
+                    inputs: ['callback'],
+                    example: 'arr.map(x => x * 2)'
+                },
+                filter: {
+                    signature: 'arr.filter(callback)',
+                    description: 'Returns new array with filtered elements',
+                    complexity: 'O(n)',
+                    inputs: ['callback'],
+                    example: 'arr.filter(x => x > 5)'
+                },
+                reduce: {
+                    signature: 'arr.reduce(callback, initialValue)',
+                    description: 'Reduces array to single value',
+                    complexity: 'O(n)',
+                    inputs: ['callback', 'initialValue'],
+                    example: 'arr.reduce((acc, x) => acc + x, 0)'
+                },
+                toSorted: {
+                    signature: 'arr.toSorted([compareFn])',
+                    description: 'Returns new sorted array (ES2023)',
+                    complexity: 'O(n log n)',
+                    inputs: ['compareFn'],
+                    example: 'arr.toSorted((a, b) => a - b)',
+                    available: typeof Array.prototype.toSorted === 'function'
+                },
+                toReversed: {
+                    signature: 'arr.toReversed()',
+                    description: 'Returns new reversed array (ES2023)',
+                    complexity: 'O(n)',
+                    inputs: [],
+                    example: 'arr.toReversed()',
+                    available: typeof Array.prototype.toReversed === 'function'
+                }
+            }
+        };
+
+        // Challenges definitions
+        const challenges = [
+            {
+                id: 1,
+                title: "Remove Last Two Items",
+                description: "Remove the last two items from the array without mutating the original array.",
+                hint: "Use slice() with negative indices to get all but the last two elements.",
+                solution: "Use arr.slice(0, -2) to get a new array without the last two elements.",
+                check: (arr, result) => {
+                    const original = [5, 2, 9, 1, 5, 6];
+                    return result && result.length === arr.length - 2 && 
+                           JSON.stringify(arr) === JSON.stringify(original);
+                }
+            },
+            {
+                id: 2,
+                title: "Insert at Index 3",
+                description: "Insert the number 42 at index 3 using a mutating method.",
+                hint: "Use splice() to insert without removing any elements.",
+                solution: "Use arr.splice(3, 0, 42) to insert 42 at index 3.",
+                check: (arr, result) => {
+                    return arr.length > 6 && arr[3] === 42;
+                }
+            },
+            {
+                id: 3,
+                title: "Filter Even Numbers",
+                description: "Create a new array containing only even numbers from the current array.",
+                hint: "Use filter() with the modulo operator (%) to check if a number is even.",
+                solution: "Use arr.filter(x => x % 2 === 0) to get only even numbers.",
+                check: (arr, result) => {
+                    return result && result.every(x => typeof x === 'number' && x % 2 === 0);
+                }
+            },
+            {
+                id: 4,
+                title: "Sum All Values",
+                description: "Calculate the sum of all numeric values in the array using reduce.",
+                hint: "Use reduce() with addition and provide 0 as the initial value.",
+                solution: "Use arr.reduce((acc, x) => acc + (typeof x === 'number' ? x : 0), 0).",
+                check: (arr, result) => {
+                    const expected = arr.reduce((acc, x) => acc + (typeof x === 'number' ? x : 0), 0);
+                    return result === expected;
+                }
+            },
+            {
+                id: 5,
+                title: "Sort by Length",
+                description: "Sort strings by length in ascending order using a comparator function.",
+                hint: "Use sort() with a comparator that compares the length property.",
+                solution: "Use arr.sort((a, b) => String(a).length - String(b).length).",
+                check: (arr, result) => {
+                    const lengths = arr.map(x => String(x).length);
+                    const sortedLengths = [...lengths].sort((a, b) => a - b);
+                    const resultLengths = arr.map(x => String(x).length);
+                    return JSON.stringify(resultLengths) === JSON.stringify(sortedLengths);
+                }
+            },
+            {
+                id: 6,
+                title: "Replace at Index 1",
+                description: "Replace the element at index 1 with '🍓' using a mutating method.",
+                hint: "Use splice() to remove one element and replace it with the strawberry emoji.",
+                solution: "Use arr.splice(1, 1, '🍓') to replace the element at index 1.",
+                check: (arr, result) => {
+                    return arr[1] === '🍓';
+                }
+            },
+            {
+                id: 7,
+                title: "Clone the Array",
+                description: "Create a perfect copy of the array without referencing the original.",
+                hint: "Use the spread operator (...) or slice() to create a shallow copy.",
+                solution: "Use [...arr] or arr.slice() to create a new array.",
+                check: (arr, result) => {
+                    return result && JSON.stringify(result) === JSON.stringify(arr) && result !== arr;
+                }
+            },
+            {
+                id: 8,
+                title: "Get Last 3 Items",
+                description: "Get the last 3 items from the array using slice.",
+                hint: "Use slice() with a negative starting index.",
+                solution: "Use arr.slice(-3) to get the last 3 elements.",
+                check: (arr, result) => {
+                    return result && result.length === 3 && 
+                           JSON.stringify(result) === JSON.stringify(arr.slice(-3));
+                }
+            },
+            {
+                id: 9,
+                title: "Double All Numbers",
+                description: "Create a new array where all numbers are doubled, non-numbers remain unchanged.",
+                hint: "Use map() and check the type of each element before doubling.",
+                solution: "Use arr.map(x => typeof x === 'number' ? x * 2 : x).",
+                check: (arr, result) => {
+                    const expected = arr.map(x => typeof x === 'number' ? x * 2 : x);
+                    return result && JSON.stringify(result) === JSON.stringify(expected);
+                }
+            },
+            {
+                id: 10,
+                title: "Remove Duplicates",
+                description: "Create a new array with duplicate values removed, preserving order.",
+                hint: "Use filter() with indexOf() to keep only the first occurrence of each value.",
+                solution: "Use arr.filter((item, index) => arr.indexOf(item) === index).",
+                check: (arr, result) => {
+                    const expected = arr.filter((item, index) => arr.indexOf(item) === index);
+                    return result && JSON.stringify(result) === JSON.stringify(expected);
+                }
+            }
+        ];
+
+        // Concept cards content
+        const concepts = [
+            {
+                title: "Mutating vs Non-Mutating",
+                content: `
+                    <p><strong>Mutating methods</strong> modify the original array:</p>
+                    <ul>
+                        <li>Change the array in place</li>
+                        <li>Usually return the modified array or removed elements</li>
+                        <li>Examples: push(), pop(), splice(), sort()</li>
+                    </ul>
+                    <p><strong>Non-mutating methods</strong> create new arrays:</p>
+                    <ul>
+                        <li>Leave original array unchanged</li>
+                        <li>Return a new array or computed value</li>
+                        <li>Examples: slice(), map(), filter(), concat()</li>
+                    </ul>
+                `
+            },
+            {
+                title: "Shallow vs Deep Copy",
+                content: `
+                    <p><strong>Shallow copy</strong> creates a new array but nested objects/arrays are still referenced:</p>
+                    <code>const copy = [...original]; // or original.slice()</code>
+                    <p><strong>Deep copy</strong> recursively copies all nested structures:</p>
+                    <code>const deepCopy = JSON.parse(JSON.stringify(original));</code>
+                    <p><em>Note:</em> JSON method doesn't work with functions, undefined, or symbols.</p>
+                `
+            },
+            {
+                title: "Common Pitfalls",
+                content: `
+                    <ul>
+                        <li><strong>Default sort():</strong> Converts to strings, so [10, 2, 1] becomes [1, 10, 2]</li>
+                        <li><strong>Mutation accidents:</strong> Forgetting that sort(), reverse() modify original</li>
+                        <li><strong>Index confusion:</strong> splice(start, deleteCount, ...items) vs slice(start, end)</li>
+                        <li><strong>Reference sharing:</strong> Shallow copies share nested object references</li>
+                    </ul>
+                `
+            },
+            {
+                title: "Copy Patterns",
+                content: `
+                    <p><strong>Spread operator (ES6+):</strong></p>
+                    <code>const copy = [...original];</code>
+                    <p><strong>Array.slice():</strong></p>
+                    <code>const copy = original.slice();</code>
+                    <p><strong>Array.from():</strong></p>
+                    <code>const copy = Array.from(original);</code>
+                    <p><strong>Array constructor:</strong></p>
+                    <code>const copy = Array(...original);</code>
+                `
+            }
+        ];
+
+        // Initialize the application
+        function init() {
+            loadFromStorage();
+            renderMethods();
+            renderChallenges();
+            renderConcepts();
+            updateArrayView();
+            updateHistoryControls();
+            
+            // Set up keyboard handlers
+            document.addEventListener('keydown', handleKeyboard);
+            
+            // Auto-save periodically
+            setInterval(saveToStorage, 5000);
+        }
+
+        // Render method buttons
+        function renderMethods() {
+            const mutatingContainer = document.getElementById('mutating-methods');
+            const nonMutatingContainer = document.getElementById('non-mutating-methods');
+            
+            mutatingContainer.innerHTML = '';
+            nonMutatingContainer.innerHTML = '';
+            
+            // Render mutating methods
+            Object.keys(methods.mutating).forEach(methodName => {
+                const method = methods.mutating[methodName];
+                const button = createMethodButton(methodName, method, true);
+                mutatingContainer.appendChild(button);
+            });
+            
+            // Render non-mutating methods
+            Object.keys(methods.nonMutating).forEach(methodName => {
+                const method = methods.nonMutating[methodName];
+                if (method.available !== false) {
+                    const button = createMethodButton(methodName, method, false);
+                    nonMutatingContainer.appendChild(button);
+                }
+            });
+        }
+
+        function createMethodButton(methodName, method, isMutating) {
+            const button = document.createElement('button');
+            button.className = 'method-btn tooltip';
+            button.textContent = methodName;
+            button.onclick = () => selectMethod(methodName, isMutating);
+            button.setAttribute('aria-label', `Select ${methodName} method`);
+            
+            // Add tooltip
+            const tooltip = document.createElement('div');
+            tooltip.className = 'tooltip-content';
+            tooltip.innerHTML = `
+                <strong>${method.signature}</strong><br>
+                ${method.description}<br>
+                <span class="complexity-badge">${method.complexity}</span><br>
+                <em>Example:</em> ${method.example}
+            `;
+            button.appendChild(tooltip);
+            
+            return button;
+        }
+
+        function selectMethod(methodName, isMutating) {
+            // Clear previous selection
+            document.querySelectorAll('.method-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Set new selection
+            event.target.classList.add('active');
+            state.selectedMethod = { name: methodName, isMutating };
+            
+            // Update inputs and preview
+            renderOperationInputs(methodName, isMutating);
+            updateCodePreview();
+            
+            document.getElementById('run-operation').disabled = false;
+        }
+
+        function renderOperationInputs(methodName, isMutating) {
+            const container = document.getElementById('operation-inputs');
+            const method = isMutating ? methods.mutating[methodName] : methods.nonMutating[methodName];
+            
+            container.innerHTML = '';
+            
+            method.inputs.forEach(inputName => {
+                const group = document.createElement('div');
+                group.className = 'input-group';
+                
+                const label = document.createElement('label');
+                label.textContent = getInputLabel(inputName);
+                label.setAttribute('for', `input-${inputName}`);
+                
+                const input = createInput(inputName, methodName);
+                input.id = `input-${inputName}`;
+                input.addEventListener('input', updateCodePreview);
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') runOperation();
+                });
+                
+                group.appendChild(label);
+                group.appendChild(input);
+                container.appendChild(group);
+            });
+        }
+
+        function getInputLabel(inputName) {
+            const labels = {
+                'value': 'Value to add:',
+                'start': 'Start index:',
+                'end': 'End index:',
+                'deleteCount': 'Delete count:',
+                'items': 'Items to insert (comma-separated):',
+                'target': 'Target index:',
+                'values': 'Values to concatenate (comma-separated):',
+                'callback': 'Callback function:',
+                'initialValue': 'Initial value:',
+                'compareFn': 'Compare function:'
+            };
+            return labels[inputName] || inputName + ':';
+        }
+
+        function createInput(inputName, methodName) {
+            if (inputName === 'callback' || inputName === 'compareFn') {
+                const textarea = document.createElement('textarea');
+                textarea.rows = 2;
+                textarea.placeholder = getPlaceholder(inputName, methodName);
+                return textarea;
+            } else {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = getPlaceholder(inputName, methodName);
+                return input;
+            }
+        }
+
+        function getPlaceholder(inputName, methodName) {
+            const placeholders = {
+                'value': '42',
+                'start': '0',
+                'end': '3',
+                'deleteCount': '1',
+                'items': '"new", 42',
+                'target': '0',
+                'values': '[7, 8], 9',
+                'callback': getCallbackPlaceholder(methodName),
+                'initialValue': '0',
+                'compareFn': '(a, b) => a - b'
+            };
+            return placeholders[inputName] || '';
+        }
+
+        function getCallbackPlaceholder(methodName) {
+            const callbacks = {
+                'map': 'x => x * 2',
+                'filter': 'x => x % 2 === 0',
+                'reduce': '(acc, x) => acc + x'
+            };
+            return callbacks[methodName] || 'x => x';
+        }
+
+        function updateCodePreview() {
+            const preview = document.getElementById('code-preview');
+            
+            if (!state.selectedMethod) {
+                preview.textContent = 'Select a method to see the code preview';
+                return;
+            }
+            
+            try {
+                const code = generateCode();
+                preview.textContent = code;
+            } catch (error) {
+                preview.textContent = 'Invalid input - check your syntax';
+            }
+        }
+
+        function generateCode() {
+            const { name, isMutating } = state.selectedMethod;
+            const method = isMutating ? methods.mutating[name] : methods.nonMutating[name];
+            
+            let code = `arr.${name}(`;
+            const args = [];
+            
+            method.inputs.forEach(inputName => {
+                const input = document.getElementById(`input-${inputName}`);
+                if (input && input.value.trim()) {
+                    if (inputName === 'items' || inputName === 'values') {
+                        args.push(input.value);
+                    } else if (inputName === 'callback' || inputName === 'compareFn') {
+                        args.push(input.value);
+                    } else {
+                        const value = input.value.trim();
+                        // Try to parse as number, otherwise treat as string
+                        if (!isNaN(value) && value !== '') {
+                            args.push(value);
+                        } else {
+                            args.push(value);
+                        }
+                    }
+                }
+            });
+            
+            code += args.join(', ') + ')';
+            return code;
+        }
+
+        function runOperation() {
+            if (!state.selectedMethod) return;
+            
+            try {
+                const { name, isMutating } = state.selectedMethod;
+                const method = isMutating ? methods.mutating[name] : methods.nonMutating[name];
+                
+                // Save current state for history
+                const beforeState = {
+                    array: [...state.currentArray],
+                    code: generateCode(),
+                    timestamp: Date.now()
+                };
+                
+                // Execute the operation
+                const result = executeOperation(name, isMutating, method);
+                
+                // Update state
+                const afterState = {
+                    array: [...state.currentArray],
+                    result: result,
+                    wasMutated: isMutating
+                };
+                
+                // Add to history
+                addToHistory({ before: beforeState, after: afterState });
+                
+                // Update UI
+                updateArrayView();
+                updateHistoryControls();
+                saveToStorage();
+                
+                // Clear selection
+                clearSelection();
+                
+            } catch (error) {
+                console.error('Operation failed:', error);
+                showError('Operation failed: ' + error.message);
+            }
+        }
+
+        function executeOperation(name, isMutating, method) {
+            const args = [];
+            
+            method.inputs.forEach(inputName => {
+                const input = document.getElementById(`input-${inputName}`);
+                if (input && input.value.trim()) {
+                    let value = input.value.trim();
+                    
+                    if (inputName === 'callback' || inputName === 'compareFn') {
+                        // Create function from string
+                        try {
+                            value = new Function('return ' + value)();
+                        } catch (e) {
+                            throw new Error(`Invalid function: ${value}`);
+                        }
+                    } else if (inputName === 'items' || inputName === 'values') {
+                        // Parse comma-separated values
+                        try {
+                            value = parseValues(value);
+                        } catch (e) {
+                            throw new Error(`Invalid values: ${value}`);
+                        }
+                    } else {
+                        // Try to parse as number
+                        if (!isNaN(value) && value !== '') {
+                            value = Number(value);
+                        } else if (value.startsWith('"') && value.endsWith('"')) {
+                            value = value.slice(1, -1);
+                        }
+                    }
+                    
+                    if (inputName === 'items' || inputName === 'values') {
+                        args.push(...value);
+                    } else {
+                        args.push(value);
+                    }
+                }
+            });
+            
+            // Execute the method
+            let result;
+            if (isMutating) {
+                result = state.currentArray[name](...args);
+                state.wasMutated = true;
+            } else {
+                result = state.currentArray[name](...args);
+                state.wasMutated = false;
+            }
+            
+            state.lastResult = result;
+            return result;
+        }
+
+        function parseValues(str) {
+            try {
+                // Try to evaluate as JavaScript array
+                return eval(`[${str}]`);
+            } catch (e) {
+                // Fallback: split by comma and try to parse each value
+                return str.split(',').map(v => {
+                    v = v.trim();
+                    if (!isNaN(v) && v !== '') return Number(v);
+                    if (v.startsWith('"') && v.endsWith('"')) return v.slice(1, -1);
+                    if (v === 'true') return true;
+                    if (v === 'false') return false;
+                    if (v === 'null') return null;
+                    return v;
+                });
+            }
+        }
+
+        function updateArrayView() {
+            const container = document.getElementById('array-container');
+            const lengthBadge = document.getElementById('length-badge');
+            const mutationBadge = document.getElementById('mutation-badge');
+            
+            // Update badges
+            lengthBadge.textContent = `Length: ${state.currentArray.length}`;
+            
+            if (state.wasMutated) {
+                mutationBadge.textContent = 'Mutated';
+                mutationBadge.className = 'info-badge badge-mutated';
+            } else {
+                mutationBadge.textContent = 'Original';
+                mutationBadge.className = 'info-badge badge-immutable';
+            }
+            
+            // Clear existing cells
+            container.innerHTML = '';
+            
+            // Create new cells
+            state.currentArray.forEach((value, index) => {
+                const cell = document.createElement('div');
+                cell.className = 'array-cell';
+                cell.textContent = formatValue(value);
+                cell.setAttribute('role', 'gridcell');
+                cell.setAttribute('aria-label', `Index ${index}, value ${formatValue(value)}`);
+                
+                const indexLabel = document.createElement('div');
+                indexLabel.className = 'cell-index';
+                indexLabel.textContent = index;
+                cell.appendChild(indexLabel);
+                
+                container.appendChild(cell);
+                
+                // Add animation for new cells
+                setTimeout(() => cell.classList.add('new'), 10);
+            });
+            
+            // Add pulse animation
+            container.classList.add('pulse');
+            setTimeout(() => container.classList.remove('pulse'), 500);
+        }
+
+        function formatValue(value) {
+            if (value === null) return 'null';
+            if (value === undefined) return 'undefined';
+            if (typeof value === 'string') return `"${value}"`;
+            if (Array.isArray(value)) return `[${value.join(', ')}]`;
+            if (typeof value === 'object') return JSON.stringify(value);
+            return String(value);
+        }
+
+        function addToHistory(entry) {
+            // Remove any history after current index
+            state.history = state.history.slice(0, state.historyIndex + 1);
+            
+            // Add new entry
+            state.history.push(entry);
+            state.historyIndex = state.history.length - 1;
+            
+            // Limit history size
+            if (state.history.length > 50) {
+                state.history.shift();
+                state.historyIndex--;
+            }
+            
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('history-list');
+            container.innerHTML = '';
+            
+            state.history.forEach((entry, index) => {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                if (index === state.historyIndex) item.style.background = 'var(--secondary-color)';
+                
+                const code = document.createElement('div');
+                code.className = 'history-code';
+                code.textContent = entry.before.code;
+                
+                const result = document.createElement('div');
+                result.className = 'history-result';
+                result.textContent = `${entry.after.wasMutated ? 'Mutated' : 'Returned'}: ${formatValue(entry.after.result)}`;
+                
+                item.appendChild(code);
+                item.appendChild(result);
+                item.onclick = () => restoreFromHistory(index);
+                item.setAttribute('role', 'button');
+                item.setAttribute('aria-label', `Restore to operation: ${entry.before.code}`);
+                
+                container.appendChild(item);
+            });
+            
+            // Scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function restoreFromHistory(index) {
+            if (index < 0 || index >= state.history.length) return;
+            
+            state.historyIndex = index;
+            state.currentArray = [...state.history[index].after.array];
+            state.wasMutated = state.history[index].after.wasMutated;
+            
+            updateArrayView();
+            updateHistoryControls();
+            renderHistory();
+        }
+
+        function undo() {
+            if (state.historyIndex > 0) {
+                state.historyIndex--;
+                state.currentArray = [...state.history[state.historyIndex].after.array];
+                state.wasMutated = state.history[state.historyIndex].after.wasMutated;
+                
+                updateArrayView();
+                updateHistoryControls();
+                renderHistory();
+            }
+        }
+
+        function redo() {
+            if (state.historyIndex < state.history.length - 1) {
+                state.historyIndex++;
+                state.currentArray = [...state.history[state.historyIndex].after.array];
+                state.wasMutated = state.history[state.historyIndex].after.wasMutated;
+                
+                updateArrayView();
+                updateHistoryControls();
+                renderHistory();
+            }
+        }
+
+        function clearHistory() {
+            state.history = [];
+            state.historyIndex = -1;
+            renderHistory();
+            updateHistoryControls();
+        }
+
+        function updateHistoryControls() {
+            document.getElementById('undo-btn').disabled = state.historyIndex <= 0;
+            document.getElementById('redo-btn').disabled = state.historyIndex >= state.history.length - 1;
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.method-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('operation-inputs').innerHTML = '';
+            document.getElementById('code-preview').textContent = 'Select a method to see the code preview';
+            document.getElementById('run-operation').disabled = true;
+            state.selectedMethod = null;
+        }
+
+        function updateArray() {
+            const input = document.getElementById('seed-array');
+            try {
+                const values = parseValues(input.value);
+                state.currentArray = values;
+                state.wasMutated = false;
+                updateArrayView();
+                clearSelection();
+                saveToStorage();
+            } catch (error) {
+                showError('Invalid array format');
+            }
+        }
+
+        function loadPreset(type) {
+            const presets = {
+                numbers: [1, 2, 3, 4, 5],
+                strings: ["apple", "pear", "banana"],
+                mixed: ["a", 3, true, null],
+                nested: [[1, 2], [3, 4]]
+            };
+            
+            if (presets[type]) {
+                state.currentArray = [...presets[type]];
+                state.wasMutated = false;
+                document.getElementById('seed-array').value = formatArrayForInput(presets[type]);
+                updateArrayView();
+                clearSelection();
+                saveToStorage();
+            }
+        }
+
+        function formatArrayForInput(arr) {
+            return arr.map(v => {
+                if (typeof v === 'string') return `"${v}"`;
+                if (Array.isArray(v)) return `[${v.join(', ')}]`;
+                return String(v);
+            }).join(', ');
+        }
+
+        function renderChallenges() {
+            const container = document.getElementById('challenges-list');
+            container.innerHTML = '';
+            
+            challenges.forEach(challenge => {
+                const item = document.createElement('div');
+                item.className = 'challenge-item';
+                
+                const header = document.createElement('div');
+                header.className = 'challenge-header';
+                header.onclick = () => toggleChallenge(challenge.id);
+                header.setAttribute('role', 'button');
+                header.setAttribute('aria-expanded', 'false');
+                header.setAttribute('aria-controls', `challenge-content-${challenge.id}`);
+                
+                const title = document.createElement('span');
+                title.textContent = challenge.title;
+                
+                const status = document.createElement('div');
+                status.className = 'challenge-status';
+                if (state.challengeProgress[challenge.id]) {
+                    status.classList.add('completed');
+                    status.textContent = '✓';
+                    status.setAttribute('aria-label', 'Completed');
+                } else {
+                    status.textContent = challenge.id;
+                }
+                
+                header.appendChild(title);
+                header.appendChild(status);
+                
+                const content = document.createElement('div');
+                content.id = `challenge-content-${challenge.id}`;
+                content.className = 'challenge-content';
+                
+                const description = document.createElement('div');
+                description.className = 'challenge-description';
+                description.textContent = challenge.description;
+                
+                const actions = document.createElement('div');
+                actions.className = 'challenge-actions';
+                
+                const checkBtn = document.createElement('button');
+                checkBtn.className = 'challenge-btn primary';
+                checkBtn.textContent = 'Check Answer';
+                checkBtn.onclick = () => checkChallenge(challenge);
+                
+                const hintBtn = document.createElement('button');
+                hintBtn.className = 'challenge-btn';
+                hintBtn.textContent = 'Show Hint';
+                hintBtn.onclick = () => toggleHint(challenge.id);
+                
+                const solutionBtn = document.createElement('button');
+                solutionBtn.className = 'challenge-btn';
+                solutionBtn.textContent = 'Show Solution';
+                solutionBtn.onclick = () => toggleSolution(challenge.id);
+                
+                actions.appendChild(checkBtn);
+                actions.appendChild(hintBtn);
+                actions.appendChild(solutionBtn);
+                
+                content.appendChild(description);
+                content.appendChild(actions);
+                
+                item.appendChild(header);
+                item.appendChild(content);
+                container.appendChild(item);
+            });
+        }
+
+        function toggleChallenge(id) {
+            const content = document.getElementById(`challenge-content-${id}`);
+            const header = content.previousElementSibling;
+            const isExpanded = content.classList.contains('show');
+            
+            content.classList.toggle('show');
+            header.setAttribute('aria-expanded', !isExpanded);
+        }
+
+        function checkChallenge(challenge) {
+            try {
+                const passed = challenge.check(state.currentArray, state.lastResult);
+                const messageContainer = getOrCreateMessageContainer(challenge.id);
+                
+                if (passed) {
+                    state.challengeProgress[challenge.id] = true;
+                    messageContainer.innerHTML = '<div class="success-message">✓ Correct! Well done!</div>';
+                    updateChallengeStatus(challenge.id);
+                    saveToStorage();
+                } else {
+                    messageContainer.innerHTML = '<div class="error-message">✗ Not quite right. Try again!</div>';
+                }
+            } catch (error) {
+                const messageContainer = getOrCreateMessageContainer(challenge.id);
+                messageContainer.innerHTML = '<div class="error-message">✗ Error checking answer</div>';
+            }
+        }
+
+        function getOrCreateMessageContainer(challengeId) {
+            const content = document.getElementById(`challenge-content-${challengeId}`);
+            let container = content.querySelector('.message-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'message-container';
+                content.appendChild(container);
+            }
+            return container;
+        }
+
+        function updateChallengeStatus(challengeId) {
+            const item = document.querySelector(`#challenge-content-${challengeId}`).parentElement;
+            const status = item.querySelector('.challenge-status');
+            status.classList.add('completed');
+            status.textContent = '✓';
+            status.setAttribute('aria-label', 'Completed');
+        }
+
+        function toggleHint(challengeId) {
+            const content = document.getElementById(`challenge-content-${challengeId}`);
+            let hintDiv = content.querySelector('.hint-content');
+            
+            if (hintDiv) {
+                hintDiv.remove();
+            } else {
+                const challenge = challenges.find(c => c.id === challengeId);
+                hintDiv = document.createElement('div');
+                hintDiv.className = 'hint-content';
+                hintDiv.innerHTML = `<strong>Hint:</strong> ${challenge.hint}`;
+                content.appendChild(hintDiv);
+            }
+        }
+
+        function toggleSolution(challengeId) {
+            const content = document.getElementById(`challenge-content-${challengeId}`);
+            let solutionDiv = content.querySelector('.solution-content');
+            
+            if (solutionDiv) {
+                solutionDiv.remove();
+            } else {
+                const challenge = challenges.find(c => c.id === challengeId);
+                solutionDiv = document.createElement('div');
+                solutionDiv.className = 'solution-content';
+                solutionDiv.innerHTML = `<strong>Solution:</strong> ${challenge.solution}`;
+                content.appendChild(solutionDiv);
+            }
+        }
+
+        function renderConcepts() {
+            const container = document.getElementById('concept-cards');
+            container.innerHTML = '';
+            
+            concepts.forEach((concept, index) => {
+                const card = document.createElement('div');
+                card.className = 'concept-card';
+                
+                const header = document.createElement('div');
+                header.className = 'concept-header';
+                header.textContent = concept.title;
+                header.onclick = () => toggleConcept(index);
+                header.setAttribute('role', 'button');
+                header.setAttribute('aria-expanded', 'false');
+                header.setAttribute('aria-controls', `concept-content-${index}`);
+                
+                const content = document.createElement('div');
+                content.id = `concept-content-${index}`;
+                content.className = 'concept-content';
+                content.innerHTML = concept.content;
+                
+                card.appendChild(header);
+                card.appendChild(content);
+                container.appendChild(card);
+            });
+        }
+
+        function toggleConcept(index) {
+            const content = document.getElementById(`concept-content-${index}`);
+            const header = content.previousElementSibling;
+            const isExpanded = content.classList.contains('show');
+            
+            content.classList.toggle('show');
+            header.setAttribute('aria-expanded', !isExpanded);
+        }
+
+        function toggleReadme() {
+            const content = document.getElementById('readme-content');
+            const button = document.querySelector('.readme-toggle');
+            const isExpanded = content.classList.contains('show');
+            
+            content.classList.toggle('show');
+            button.setAttribute('aria-expanded', !isExpanded);
+            button.textContent = isExpanded ? '📖 How to Use This Playground' : '📖 Hide Instructions';
+        }
+
+        function handleKeyboard(event) {
+            // ESC to clear selection
+            if (event.key === 'Escape') {
+                clearSelection();
+                event.preventDefault();
+            }
+            
+            // Ctrl/Cmd + Z for undo
+            if ((event.ctrlKey || event.metaKey) && event.key === 'z' && !event.shiftKey) {
+                undo();
+                event.preventDefault();
+            }
+            
+            // Ctrl/Cmd + Shift + Z for redo
+            if ((event.ctrlKey || event.metaKey) && event.key === 'z' && event.shiftKey) {
+                redo();
+                event.preventDefault();
+            }
+            
+            // Enter to run operation (when run button is enabled)
+            if (event.key === 'Enter' && !document.getElementById('run-operation').disabled) {
+                // Only if not focused on a textarea or input that should handle Enter
+                if (!['textarea', 'input'].includes(event.target.tagName.toLowerCase())) {
+                    runOperation();
+                    event.preventDefault();
+                }
+            }
+        }
+
+        function showError(message) {
+            // Simple error display - in a real app you might want a toast system
+            alert(message);
+        }
+
+        function saveToStorage() {
+            try {
+                const saveData = {
+                    currentArray: state.currentArray,
+                    history: state.history,
+                    historyIndex: state.historyIndex,
+                    challengeProgress: state.challengeProgress,
+                    wasMutated: state.wasMutated
+                };
+                localStorage.setItem('arrayPlayground', JSON.stringify(saveData));
+            } catch (error) {
+                console.warn('Failed to save to localStorage:', error);
+            }
+        }
+
+        function loadFromStorage() {
+            try {
+                const saved = localStorage.getItem('arrayPlayground');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    state.currentArray = data.currentArray || [5, 2, 9, 1, 5, 6];
+                    state.history = data.history || [];
+                    state.historyIndex = data.historyIndex || -1;
+                    state.challengeProgress = data.challengeProgress || {};
+                    state.wasMutated = data.wasMutated || false;
+                    
+                    document.getElementById('seed-array').value = formatArrayForInput(state.currentArray);
+                }
+            } catch (error) {
+                console.warn('Failed to load from localStorage:', error);
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
