@@ -1,0 +1,1697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hash Map Playground</title>
+    <style>
+        :root {
+            --sky-1: #f7f4f1;
+            --sky-2: #e8ddd4;
+            --sky-3: #d4c4b0;
+            --sky-4: #b8a082;
+            --sky-5: #8d6e47;
+            --sand-1: #f9f6f2;
+            --sand-2: #f0e9e2;
+            --sand-3: #e4d7c8;
+            --sand-4: #d4c0a6;
+            --sand-5: #b8976b;
+            --ink: #3a2f26;
+            --accent: #d4976b;
+            --accent-light: #f2e5d4;
+            --success: #7ba05b;
+            --warning: #d4976b;
+            --error: #c67c5c;
+            --transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        [data-theme="dark"] {
+            --sky-1: #1a1612;
+            --sky-2: #2a221c;
+            --sky-3: #3a2f26;
+            --sky-4: #4a3f36;
+            --sky-5: #5a4f46;
+            --sand-1: #1f1b17;
+            --sand-2: #2f2b27;
+            --sand-3: #3f3b37;
+            --sand-4: #4f4b47;
+            --sand-5: #5f5b57;
+            --ink: #f7f4f1;
+            --accent: #f2e5d4;
+            --accent-light: #3a2f26;
+        }
+
+        [data-theme="high-contrast"] {
+            --sky-1: #ffffff;
+            --sky-2: #f0f0f0;
+            --sky-3: #d0d0d0;
+            --sky-4: #808080;
+            --sky-5: #404040;
+            --sand-1: #ffffff;
+            --sand-2: #f8f8f8;
+            --sand-3: #e8e8e8;
+            --sand-4: #d0d0d0;
+            --sand-5: #808080;
+            --ink: #000000;
+            --accent: #0066cc;
+            --accent-light: #e6f2ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, var(--sky-1) 0%, var(--sky-2) 50%, var(--sky-3) 100%);
+            color: var(--ink);
+            min-height: 100vh;
+            transition: var(--transition);
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            grid-template-columns: 1fr 320px;
+            min-height: 100vh;
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .title {
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: var(--ink);
+        }
+
+        .subtitle {
+            font-size: 0.875rem;
+            opacity: 0.7;
+            margin-top: 0.25rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            background: var(--sand-2);
+            color: var(--ink);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .btn:hover {
+            background: var(--sand-3);
+            transform: translateY(-1px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.active {
+            background: var(--accent);
+            color: var(--sand-1);
+        }
+
+        .canvas-container {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hash-table {
+            display: grid;
+            gap: 0.75rem;
+            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            max-width: 100%;
+        }
+
+        .bucket {
+            background: var(--sand-1);
+            border: 2px solid var(--sand-3);
+            border-radius: 0.75rem;
+            padding: 0.75rem 0.5rem;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .bucket-index {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--sky-5);
+            text-align: center;
+            margin-bottom: 0.25rem;
+        }
+
+        .bucket.highlight {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            transform: scale(1.02);
+        }
+
+        .bucket.collision {
+            border-color: var(--warning);
+            background: rgba(212, 151, 107, 0.1);
+        }
+
+        .key-value {
+            background: var(--sky-2);
+            border-radius: 0.5rem;
+            padding: 0.375rem 0.5rem;
+            font-size: 0.75rem;
+            text-align: center;
+            transition: var(--transition);
+            word-break: break-all;
+        }
+
+        .key-value.tombstone {
+            background: var(--sand-4);
+            opacity: 0.6;
+            position: relative;
+        }
+
+        .key-value.tombstone::after {
+            content: 't';
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--error);
+            color: white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .side-panel {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .section {
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--ink);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.375rem;
+            color: var(--sky-5);
+        }
+
+        .input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--sand-3);
+            border-radius: 0.5rem;
+            background: var(--sand-1);
+            color: var(--ink);
+            font-size: 0.875rem;
+            transition: var(--transition);
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(212, 151, 107, 0.1);
+        }
+
+        .select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--sand-3);
+            border-radius: 0.5rem;
+            background: var(--sand-1);
+            color: var(--ink);
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        .stats {
+            background: var(--sand-1);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--sky-5);
+        }
+
+        .stat-value {
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        .narration {
+            background: var(--accent-light);
+            border-left: 4px solid var(--accent);
+            padding: 1rem;
+            border-radius: 0 0.5rem 0.5rem 0;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            line-height: 1.4;
+        }
+
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--accent);
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: float 8s infinite linear;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.3;
+            }
+            90% {
+                opacity: 0.3;
+            }
+            100% {
+                transform: translateY(-100px) translateX(20px);
+                opacity: 0;
+            }
+        }
+
+        .flying-hash {
+            position: absolute;
+            background: var(--accent);
+            color: var(--sand-1);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            pointer-events: none;
+            z-index: 10;
+            opacity: 0;
+            transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .challenges {
+            grid-column: 1 / -1;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1.5rem;
+        }
+
+        .challenge {
+            background: var(--sand-1);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 2px solid var(--sand-3);
+            transition: var(--transition);
+        }
+
+        .challenge.completed {
+            border-color: var(--success);
+            background: rgba(123, 160, 91, 0.1);
+        }
+
+        .challenge-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--ink);
+        }
+
+        .challenge-description {
+            font-size: 0.875rem;
+            color: var(--sky-5);
+            margin-bottom: 0.75rem;
+            line-height: 1.4;
+        }
+
+        .challenge-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-small {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.8rem;
+        }
+
+        .live-region {
+            position: absolute;
+            left: -10000px;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .code-preview {
+            background: var(--ink);
+            color: var(--sand-1);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            margin-top: 1rem;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+
+        .history {
+            max-height: 200px;
+            overflow-y: auto;
+            background: var(--sand-1);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+        }
+
+        .history-item {
+            font-size: 0.8rem;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid var(--sand-2);
+            color: var(--sky-5);
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .concept-cards {
+            grid-column: 1 / -1;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1.5rem;
+        }
+
+        .concept-card {
+            background: var(--sand-1);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: var(--transition);
+        }
+
+        .concept-card h3 {
+            color: var(--ink);
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .concept-card p {
+            color: var(--sky-5);
+            font-size: 0.875rem;
+            line-height: 1.4;
+        }
+
+        .toggle-section {
+            cursor: pointer;
+            user-select: none;
+            padding: 0.75rem;
+            background: var(--sand-2);
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            transition: var(--transition);
+        }
+
+        .toggle-section:hover {
+            background: var(--sand-3);
+        }
+
+        .toggle-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .toggle-content.open {
+            max-height: 1000px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+            
+            .particle {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .app-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto 1fr auto;
+            }
+            
+            .side-panel {
+                order: 2;
+            }
+            
+            .canvas-container {
+                order: 3;
+            }
+        }
+    </style>
+</head>
+<body data-theme="calm">
+    <div class="app-container">
+        <header class="header">
+            <div>
+                <h1 class="title">Hash Map Playground</h1>
+                <p class="subtitle">Explore hash tables through gentle discovery</p>
+            </div>
+            <div class="controls">
+                <button class="btn" id="themeBtn" aria-label="Toggle theme">🌙</button>
+                <button class="btn" id="audioBtn" aria-label="Toggle audio">🔇</button>
+                <button class="btn" id="motionBtn" aria-label="Toggle motion">⚡</button>
+            </div>
+        </header>
+
+        <main class="canvas-container">
+            <div class="particles" id="particles"></div>
+            <div class="stats">
+                <div class="stat-row">
+                    <span class="stat-label">Size:</span>
+                    <span class="stat-value" id="sizeValue">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Capacity:</span>
+                    <span class="stat-value" id="capacityValue">53</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Load Factor:</span>
+                    <span class="stat-value" id="loadFactorValue">0.00</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Max Depth:</span>
+                    <span class="stat-value" id="maxDepthValue">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Avg Comparisons:</span>
+                    <span class="stat-value" id="avgComparisonsValue">0.00</span>
+                </div>
+            </div>
+            <div class="hash-table" id="hashTable"></div>
+        </main>
+
+        <aside class="side-panel">
+            <div class="section">
+                <h2 class="section-title">Operations</h2>
+                <div class="form-group">
+                    <label class="label" for="keyInput">Key:</label>
+                    <input class="input" type="text" id="keyInput" placeholder="Enter a key...">
+                </div>
+                <div class="form-group">
+                    <label class="label" for="valueInput">Value (optional):</label>
+                    <input class="input" type="text" id="valueInput" placeholder="Enter a value...">
+                </div>
+                <div class="form-group">
+                    <button class="btn" id="insertBtn">Insert</button>
+                    <button class="btn" id="findBtn">Find</button>
+                    <button class="btn" id="deleteBtn">Delete</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">Strategy</h2>
+                <div class="form-group">
+                    <label class="label" for="strategySelect">Collision Handling:</label>
+                    <select class="select" id="strategySelect">
+                        <option value="chaining">Separate Chaining</option>
+                        <option value="linear">Linear Probing</option>
+                        <option value="quadratic">Quadratic Probing</option>
+                        <option value="double">Double Hashing</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">Parameters</h2>
+                <div class="form-group">
+                    <label class="label" for="capacitySelect">Table Size:</label>
+                    <select class="select" id="capacitySelect">
+                        <option value="53">53 (small)</option>
+                        <option value="97">97 (medium)</option>
+                        <option value="193">193 (large)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="label" for="seedInput">Hash Seed:</label>
+                    <input class="input" type="number" id="seedInput" value="5381" min="1" max="99999">
+                </div>
+                <div class="form-group">
+                    <label class="label" for="loadFactorInput">Load Factor Threshold:</label>
+                    <input class="input" type="number" id="loadFactorInput" value="0.75" min="0.1" max="0.9" step="0.05">
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">Actions</h2>
+                <div class="form-group">
+                    <button class="btn" id="clearBtn">Clear All</button>
+                    <button class="btn" id="resizeBtn">Force Resize</button>
+                </div>
+                <div class="form-group">
+                    <button class="btn" id="undoBtn">Undo</button>
+                    <button class="btn" id="redoBtn">Redo</button>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">Presets</h2>
+                <div class="form-group">
+                    <button class="btn btn-small" id="uniformBtn">Uniform Keys</button>
+                    <button class="btn btn-small" id="naughtyBtn">Naughty Keys</button>
+                    <button class="btn btn-small" id="anagramsBtn">Anagrams</button>
+                </div>
+            </div>
+
+            <div class="narration" id="narration">
+                Welcome to the Hash Map Playground! Start by inserting a key to see the magic happen.
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">Code Preview</h2>
+                <div class="code-preview" id="codePreview">// Your operations will appear here...</div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">History</h2>
+                <div class="history" id="history"></div>
+            </div>
+        </aside>
+
+        <section class="challenges">
+            <div class="toggle-section" onclick="toggleSection('challengesContent')">
+                <h2>🎯 Challenges (Click to expand)</h2>
+            </div>
+            <div class="toggle-content" id="challengesContent">
+                <div id="challengesList"></div>
+            </div>
+        </section>
+
+        <section class="concept-cards">
+            <div class="toggle-section" onclick="toggleSection('conceptsContent')">
+                <h2>📚 Concept Cards (Click to expand)</h2>
+            </div>
+            <div class="toggle-content" id="conceptsContent">
+                <div class="concept-card">
+                    <h3>Hash Functions</h3>
+                    <p>A hash function takes a key and produces an integer index. Good hash functions distribute keys evenly across the table to minimize collisions.</p>
+                </div>
+                <div class="concept-card">
+                    <h3>Collisions</h3>
+                    <p>When two different keys hash to the same index, we have a collision. Different strategies exist to handle this: chaining (storing multiple items in the same bucket) or open addressing (finding another spot).</p>
+                </div>
+                <div class="concept-card">
+                    <h3>Load Factor</h3>
+                    <p>The ratio of filled slots to total capacity. As load factor increases, collisions become more likely, degrading performance. Most hash tables resize when load factor exceeds 0.75.</p>
+                </div>
+                <div class="concept-card">
+                    <h3>Open Addressing</h3>
+                    <p>When a collision occurs, we probe for the next available slot using a predictable sequence. Linear probing checks adjacent slots, quadratic probing uses a quadratic sequence, and double hashing uses a second hash function.</p>
+                </div>
+                <div class="concept-card">
+                    <h3>Tombstones</h3>
+                    <p>In open addressing, when we delete an item, we mark the slot with a "tombstone" rather than leaving it empty. This ensures that find operations can still locate items that were inserted after the deleted item.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="live-region" id="liveRegion" aria-live="polite" aria-atomic="true"></div>
+
+    <script>
+        class HashMap {
+            constructor(options = {}) {
+                this.capacity = options.capacity || 53;
+                this.strategy = options.strategy || 'chaining';
+                this.loadFactorMax = options.loadFactorMax || 0.75;
+                this.hashSeed = options.hashSeed || 5381;
+                this.buckets = new Array(this.capacity).fill(null).map(() => []);
+                this.size = 0;
+                this.tombstones = new Set();
+                this.operations = [];
+                this.comparisons = [];
+                this.totalComparisons = 0;
+                this.operationCount = 0;
+            }
+
+            hash(key, seed = this.hashSeed) {
+                let hash = seed;
+                const str = String(key);
+                for (let i = 0; i < str.length; i++) {
+                    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+                    hash = hash & hash; // Convert to 32bit integer
+                }
+                return Math.abs(hash);
+            }
+
+            secondHash(key, seed = this.hashSeed) {
+                const hash = this.hash(key, seed + 1);
+                return 7 - (hash % 7); // Ensure it's never 0
+            }
+
+            insert(key, value = key) {
+                const startTime = performance.now();
+                const probes = [];
+                let comparisons = 0;
+                let placedIndex = -1;
+
+                if (this.strategy === 'chaining') {
+                    const index = this.hash(key) % this.capacity;
+                    probes.push(index);
+                    
+                    // Check if key already exists
+                    for (let i = 0; i < this.buckets[index].length; i++) {
+                        comparisons++;
+                        if (this.buckets[index][i] && this.buckets[index][i].key === key) {
+                            this.buckets[index][i].value = value;
+                            placedIndex = index;
+                            this.recordOperation('insert', key, value, probes, comparisons, performance.now() - startTime);
+                            return { placedIndex, probes, comparisons, updated: true };
+                        }
+                    }
+                    
+                    this.buckets[index].push({ key, value });
+                    this.size++;
+                    placedIndex = index;
+                } else {
+                    // Open addressing
+                    const baseHash = this.hash(key) % this.capacity;
+                    let index = baseHash;
+                    let i = 0;
+                    
+                    while (i < this.capacity) {
+                        probes.push(index);
+                        
+                        if (!this.buckets[index].length || this.tombstones.has(index)) {
+                            // Empty slot or tombstone
+                            if (this.tombstones.has(index)) {
+                                this.tombstones.delete(index);
+                            }
+                            this.buckets[index] = [{ key, value }];
+                            this.size++;
+                            placedIndex = index;
+                            break;
+                        } else {
+                            // Check if it's the same key
+                            comparisons++;
+                            if (this.buckets[index][0].key === key) {
+                                this.buckets[index][0].value = value;
+                                placedIndex = index;
+                                this.recordOperation('insert', key, value, probes, comparisons, performance.now() - startTime);
+                                return { placedIndex, probes, comparisons, updated: true };
+                            }
+                        }
+                        
+                        // Calculate next probe
+                        i++;
+                        if (this.strategy === 'linear') {
+                            index = (baseHash + i) % this.capacity;
+                        } else if (this.strategy === 'quadratic') {
+                            index = (baseHash + i * i) % this.capacity;
+                        } else if (this.strategy === 'double') {
+                            const step = this.secondHash(key);
+                            index = (baseHash + i * step) % this.capacity;
+                        }
+                    }
+                }
+
+                this.recordOperation('insert', key, value, probes, comparisons, performance.now() - startTime);
+                
+                // Check if we need to resize
+                if (this.loadFactor() >= this.loadFactorMax) {
+                    this.resize();
+                }
+
+                return { placedIndex, probes, comparisons };
+            }
+
+            find(key) {
+                const startTime = performance.now();
+                const probes = [];
+                let comparisons = 0;
+                let found = false;
+                let foundIndex = -1;
+                let foundValue = null;
+
+                if (this.strategy === 'chaining') {
+                    const index = this.hash(key) % this.capacity;
+                    probes.push(index);
+                    
+                    for (let i = 0; i < this.buckets[index].length; i++) {
+                        comparisons++;
+                        if (this.buckets[index][i] && this.buckets[index][i].key === key) {
+                            found = true;
+                            foundIndex = index;
+                            foundValue = this.buckets[index][i].value;
+                            break;
+                        }
+                    }
+                } else {
+                    // Open addressing
+                    const baseHash = this.hash(key) % this.capacity;
+                    let index = baseHash;
+                    let i = 0;
+                    
+                    while (i < this.capacity) {
+                        probes.push(index);
+                        
+                        if (!this.buckets[index].length && !this.tombstones.has(index)) {
+                            // Empty slot, key not found
+                            break;
+                        }
+                        
+                        if (this.buckets[index].length) {
+                            comparisons++;
+                            if (this.buckets[index][0].key === key) {
+                                found = true;
+                                foundIndex = index;
+                                foundValue = this.buckets[index][0].value;
+                                break;
+                            }
+                        }
+                        
+                        // Calculate next probe
+                        i++;
+                        if (this.strategy === 'linear') {
+                            index = (baseHash + i) % this.capacity;
+                        } else if (this.strategy === 'quadratic') {
+                            index = (baseHash + i * i) % this.capacity;
+                        } else if (this.strategy === 'double') {
+                            const step = this.secondHash(key);
+                            index = (baseHash + i * step) % this.capacity;
+                        }
+                    }
+                }
+
+                this.recordOperation('find', key, foundValue, probes, comparisons, performance.now() - startTime);
+                return { found, index: foundIndex, value: foundValue, probes, comparisons };
+            }
+
+            delete(key) {
+                const startTime = performance.now();
+                const probes = [];
+                let comparisons = 0;
+                let deleted = false;
+                let deletedIndex = -1;
+
+                if (this.strategy === 'chaining') {
+                    const index = this.hash(key) % this.capacity;
+                    probes.push(index);
+                    
+                    for (let i = 0; i < this.buckets[index].length; i++) {
+                        comparisons++;
+                        if (this.buckets[index][i] && this.buckets[index][i].key === key) {
+                            this.buckets[index].splice(i, 1);
+                            this.size--;
+                            deleted = true;
+                            deletedIndex = index;
+                            break;
+                        }
+                    }
+                } else {
+                    // Open addressing
+                    const baseHash = this.hash(key) % this.capacity;
+                    let index = baseHash;
+                    let i = 0;
+                    
+                    while (i < this.capacity) {
+                        probes.push(index);
+                        
+                        if (!this.buckets[index].length && !this.tombstones.has(index)) {
+                            // Empty slot, key not found
+                            break;
+                        }
+                        
+                        if (this.buckets[index].length) {
+                            comparisons++;
+                            if (this.buckets[index][0].key === key) {
+                                this.buckets[index] = [];
+                                this.tombstones.add(index);
+                                this.size--;
+                                deleted = true;
+                                deletedIndex = index;
+                                break;
+                            }
+                        }
+                        
+                        // Calculate next probe
+                        i++;
+                        if (this.strategy === 'linear') {
+                            index = (baseHash + i) % this.capacity;
+                        } else if (this.strategy === 'quadratic') {
+                            index = (baseHash + i * i) % this.capacity;
+                        } else if (this.strategy === 'double') {
+                            const step = this.secondHash(key);
+                            index = (baseHash + i * step) % this.capacity;
+                        }
+                    }
+                }
+
+                this.recordOperation('delete', key, null, probes, comparisons, performance.now() - startTime);
+                return { deleted, index: deletedIndex, probes, comparisons };
+            }
+
+            resize(newCapacity = null) {
+                if (!newCapacity) {
+                    // Find next prime
+                    const primes = [53, 97, 193, 389, 769, 1543, 3079, 6151, 12289, 24593];
+                    newCapacity = primes.find(p => p > this.capacity) || this.capacity * 2;
+                }
+
+                const oldBuckets = this.buckets;
+                const oldTombstones = this.tombstones;
+                
+                this.capacity = newCapacity;
+                this.buckets = new Array(this.capacity).fill(null).map(() => []);
+                this.tombstones = new Set();
+                this.size = 0;
+
+                // Rehash all existing items
+                for (let i = 0; i < oldBuckets.length; i++) {
+                    if (oldBuckets[i] && oldBuckets[i].length && !oldTombstones.has(i)) {
+                        for (const item of oldBuckets[i]) {
+                            if (item) {
+                                this.insert(item.key, item.value);
+                            }
+                        }
+                    }
+                }
+
+                this.recordOperation('resize', null, null, [], 0, 0);
+            }
+
+            loadFactor() {
+                return this.size / this.capacity;
+            }
+
+            maxDepth() {
+                return Math.max(...this.buckets.map(bucket => bucket.length));
+            }
+
+            recordOperation(operation, key, value, probes, comparisons, time) {
+                this.operations.push({
+                    operation,
+                    key,
+                    value,
+                    probes: [...probes],
+                    comparisons,
+                    time: Math.round(time * 1000) / 1000
+                });
+
+                this.comparisons.push(comparisons);
+                this.totalComparisons += comparisons;
+                this.operationCount++;
+
+                // Keep only last 100 operations
+                if (this.operations.length > 100) {
+                    this.operations.shift();
+                }
+                if (this.comparisons.length > 100) {
+                    this.comparisons.shift();
+                }
+            }
+
+            averageComparisons() {
+                if (this.comparisons.length === 0) return 0;
+                return this.comparisons.reduce((a, b) => a + b, 0) / this.comparisons.length;
+            }
+
+            clear() {
+                this.buckets = new Array(this.capacity).fill(null).map(() => []);
+                this.tombstones = new Set();
+                this.size = 0;
+                this.operations = [];
+                this.comparisons = [];
+                this.totalComparisons = 0;
+                this.operationCount = 0;
+            }
+
+            toJSON() {
+                return {
+                    capacity: this.capacity,
+                    strategy: this.strategy,
+                    loadFactorMax: this.loadFactorMax,
+                    hashSeed: this.hashSeed,
+                    buckets: this.buckets,
+                    size: this.size,
+                    tombstones: Array.from(this.tombstones),
+                    operations: this.operations
+                };
+            }
+
+            fromJSON(data) {
+                this.capacity = data.capacity;
+                this.strategy = data.strategy;
+                this.loadFactorMax = data.loadFactorMax;
+                this.hashSeed = data.hashSeed;
+                this.buckets = data.buckets;
+                this.size = data.size;
+                this.tombstones = new Set(data.tombstones || []);
+                this.operations = data.operations || [];
+            }
+        }
+
+        class HashMapPlayground {
+            constructor() {
+                this.hashMap = new HashMap();
+                this.history = [];
+                this.historyIndex = -1;
+                this.audioContext = null;
+                this.audioEnabled = false;
+                this.motionEnabled = true;
+                this.theme = 'calm';
+                
+                this.initializeElements();
+                this.initializeEventListeners();
+                this.initializeParticles();
+                this.initializeChallenges();
+                this.render();
+                
+                // Check for reduced motion preference
+                if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                    this.motionEnabled = false;
+                    document.getElementById('motionBtn').textContent = '🐌';
+                }
+            }
+
+            initializeElements() {
+                this.elements = {
+                    hashTable: document.getElementById('hashTable'),
+                    keyInput: document.getElementById('keyInput'),
+                    valueInput: document.getElementById('valueInput'),
+                    strategySelect: document.getElementById('strategySelect'),
+                    capacitySelect: document.getElementById('capacitySelect'),
+                    seedInput: document.getElementById('seedInput'),
+                    loadFactorInput: document.getElementById('loadFactorInput'),
+                    narration: document.getElementById('narration'),
+                    liveRegion: document.getElementById('liveRegion'),
+                    codePreview: document.getElementById('codePreview'),
+                    history: document.getElementById('history'),
+                    sizeValue: document.getElementById('sizeValue'),
+                    capacityValue: document.getElementById('capacityValue'),
+                    loadFactorValue: document.getElementById('loadFactorValue'),
+                    maxDepthValue: document.getElementById('maxDepthValue'),
+                    avgComparisonsValue: document.getElementById('avgComparisonsValue')
+                };
+            }
+
+            initializeEventListeners() {
+                // Operation buttons
+                document.getElementById('insertBtn').addEventListener('click', () => this.insert());
+                document.getElementById('findBtn').addEventListener('click', () => this.find());
+                document.getElementById('deleteBtn').addEventListener('click', () => this.delete());
+                
+                // Enter key support
+                this.elements.keyInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.insert();
+                });
+                
+                // Strategy and parameter changes
+                this.elements.strategySelect.addEventListener('change', () => this.updateStrategy());
+                this.elements.capacitySelect.addEventListener('change', () => this.updateCapacity());
+                this.elements.seedInput.addEventListener('input', () => this.updateSeed());
+                this.elements.loadFactorInput.addEventListener('input', () => this.updateLoadFactor());
+                
+                // Action buttons
+                document.getElementById('clearBtn').addEventListener('click', () => this.clear());
+                document.getElementById('resizeBtn').addEventListener('click', () => this.forceResize());
+                document.getElementById('undoBtn').addEventListener('click', () => this.undo());
+                document.getElementById('redoBtn').addEventListener('click', () => this.redo());
+                
+                // Preset buttons
+                document.getElementById('uniformBtn').addEventListener('click', () => this.loadPreset('uniform'));
+                document.getElementById('naughtyBtn').addEventListener('click', () => this.loadPreset('naughty'));
+                document.getElementById('anagramsBtn').addEventListener('click', () => this.loadPreset('anagrams'));
+                
+                // Control buttons
+                document.getElementById('themeBtn').addEventListener('click', () => this.toggleTheme());
+                document.getElementById('audioBtn').addEventListener('click', () => this.toggleAudio());
+                document.getElementById('motionBtn').addEventListener('click', () => this.toggleMotion());
+            }
+
+            initializeParticles() {
+                const particlesContainer = document.getElementById('particles');
+                for (let i = 0; i < 15; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.animationDelay = Math.random() * 8 + 's';
+                    particle.style.animationDuration = (6 + Math.random() * 4) + 's';
+                    particlesContainer.appendChild(particle);
+                }
+            }
+
+            initializeChallenges() {
+                const challenges = [
+                    {
+                        id: 1,
+                        title: "First Steps",
+                        description: "Insert three keys: 'sun', 'moon', 'star'. Then find 'moon' and verify it takes ≤ 2 comparisons.",
+                        validator: () => {
+                            const found = this.hashMap.find('moon');
+                            return found.found && found.comparisons <= 2 && this.hashMap.size >= 3;
+                        },
+                        solution: () => {
+                            this.clear();
+                            this.insert('sun', 'sun');
+                            this.insert('moon', 'moon');
+                            this.insert('star', 'star');
+                            this.find('moon');
+                        }
+                    },
+                    {
+                        id: 2,
+                        title: "Collision Course",
+                        description: "With seed=7 and capacity=53, create a collision between two keys. Observe the probing sequence.",
+                        validator: () => {
+                            return this.hashMap.hashSeed === 7 && this.hashMap.capacity === 53 && 
+                                   this.hashMap.operations.some(op => op.probes && op.probes.length > 1);
+                        },
+                        solution: () => {
+                            this.updateSeed(7);
+                            this.updateCapacity(53);
+                            this.clear();
+                            this.insert('aa', 'first');
+                            this.insert('bb', 'second'); // These often collide with simple hash functions
+                        }
+                    },
+                    {
+                        id: 3,
+                        title: "Load Factor Challenge",
+                        description: "Insert items until load factor ≥ 0.75, then trigger a resize. Verify all items are preserved.",
+                        validator: () => {
+                            return this.hashMap.operations.some(op => op.operation === 'resize') && 
+                                   this.hashMap.size > 0;
+                        },
+                        solution: () => {
+                            this.clear();
+                            this.updateCapacity(53);
+                            for (let i = 0; i < 40; i++) {
+                                this.insert(`key${i}`, `value${i}`);
+                            }
+                        }
+                    },
+                    {
+                        id: 4,
+                        title: "Quadratic Journey",
+                        description: "Switch to quadratic probing and insert keys that demonstrate the i + k² probing sequence.",
+                        validator: () => {
+                            return this.hashMap.strategy === 'quadratic' && 
+                                   this.hashMap.operations.some(op => op.probes && op.probes.length >= 3);
+                        },
+                        solution: () => {
+                            this.updateStrategy('quadratic');
+                            this.clear();
+                            this.insert('alpha', 'α');
+                            this.insert('beta', 'β');
+                            this.insert('gamma', 'γ');
+                        }
+                    },
+                    {
+                        id: 5,
+                        title: "Tombstone Trail",
+                        description: "In open addressing mode, delete an entry and then find another that probes through the tombstone.",
+                        validator: () => {
+                            return this.hashMap.strategy !== 'chaining' && 
+                                   this.hashMap.tombstones.size > 0 &&
+                                   this.hashMap.operations.some(op => op.operation === 'delete' && op.probes.length > 0);
+                        },
+                        solution: () => {
+                            this.updateStrategy('linear');
+                            this.clear();
+                            this.insert('first', '1');
+                            this.insert('second', '2');
+                            this.insert('third', '3');
+                            this.delete('second');
+                            this.find('third');
+                        }
+                    }
+                ];
+
+                const challengesList = document.getElementById('challengesList');
+                challenges.forEach(challenge => {
+                    const challengeDiv = document.createElement('div');
+                    challengeDiv.className = 'challenge';
+                    challengeDiv.innerHTML = `
+                        <div class="challenge-title">${challenge.title}</div>
+                        <div class="challenge-description">${challenge.description}</div>
+                        <div class="challenge-actions">
+                            <button class="btn btn-small" onclick="playground.checkChallenge(${challenge.id})">Check</button>
+                            <button class="btn btn-small" onclick="playground.showHint(${challenge.id})">Hint</button>
+                            <button class="btn btn-small" onclick="playground.solveChallenge(${challenge.id})">Solution</button>
+                        </div>
+                    `;
+                    challengesList.appendChild(challengeDiv);
+                });
+
+                this.challenges = challenges;
+            }
+
+            insert(key = null, value = null) {
+                key = key || this.elements.keyInput.value.trim();
+                value = value || this.elements.valueInput.value.trim() || key;
+                
+                if (!key) {
+                    this.narrate("Please enter a key to insert.");
+                    return;
+                }
+
+                this.saveState();
+                
+                const result = this.hashMap.insert(key, value);
+                this.animateOperation('insert', key, result);
+                
+                const action = result.updated ? 'updated' : 'inserted';
+                this.narrate(`${action} "${key}" → index ${result.placedIndex} (${result.comparisons} comparisons, ${result.probes.length} probes)`);
+                
+                this.updateCodePreview('insert', key, value, result);
+                this.addToHistory(`INSERT "${key}" → ${result.placedIndex}`);
+                
+                this.elements.keyInput.value = '';
+                this.elements.valueInput.value = '';
+                this.render();
+                
+                if (this.audioEnabled) this.playSound('insert');
+            }
+
+            find(key = null) {
+                key = key || this.elements.keyInput.value.trim();
+                
+                if (!key) {
+                    this.narrate("Please enter a key to find.");
+                    return;
+                }
+
+                const result = this.hashMap.find(key);
+                this.animateOperation('find', key, result);
+                
+                if (result.found) {
+                    this.narrate(`Found "${key}" at index ${result.index} (${result.comparisons} comparisons, ${result.probes.length} probes)`);
+                } else {
+                    this.narrate(`"${key}" not found (${result.comparisons} comparisons, ${result.probes.length} probes)`);
+                }
+                
+                this.updateCodePreview('find', key, null, result);
+                this.addToHistory(`FIND "${key}" → ${result.found ? 'found' : 'not found'}`);
+                
+                this.elements.keyInput.value = '';
+                this.render();
+                
+                if (this.audioEnabled) this.playSound(result.found ? 'find-success' : 'find-fail');
+                return result;
+            }
+
+            delete(key = null) {
+                key = key || this.elements.keyInput.value.trim();
+                
+                if (!key) {
+                    this.narrate("Please enter a key to delete.");
+                    return;
+                }
+
+                this.saveState();
+                
+                const result = this.hashMap.delete(key);
+                this.animateOperation('delete', key, result);
+                
+                if (result.deleted) {
+                    this.narrate(`Deleted "${key}" from index ${result.index} (${result.comparisons} comparisons, ${result.probes.length} probes)`);
+                } else {
+                    this.narrate(`"${key}" not found for deletion (${result.comparisons} comparisons, ${result.probes.length} probes)`);
+                }
+                
+                this.updateCodePreview('delete', key, null, result);
+                this.addToHistory(`DELETE "${key}" → ${result.deleted ? 'deleted' : 'not found'}`);
+                
+                this.elements.keyInput.value = '';
+                this.render();
+                
+                if (this.audioEnabled) this.playSound('delete');
+            }
+
+            animateOperation(operation, key, result) {
+                if (!this.motionEnabled) return;
+
+                const probes = result.probes || [];
+                if (probes.length === 0) return;
+
+                // Create flying hash visualization
+                const flyingHash = document.createElement('div');
+                flyingHash.className = 'flying-hash';
+                flyingHash.textContent = `${this.hashMap.hash(key)} % ${this.hashMap.capacity} = ${probes[0]}`;
+                
+                const tableRect = this.elements.hashTable.getBoundingClientRect();
+                flyingHash.style.left = tableRect.left + 'px';
+                flyingHash.style.top = tableRect.top - 50 + 'px';
+                document.body.appendChild(flyingHash);
+
+                // Animate to first bucket
+                setTimeout(() => {
+                    flyingHash.style.opacity = '1';
+                    flyingHash.style.transform = 'translateY(50px)';
+                }, 100);
+
+                // Highlight probes in sequence
+                probes.forEach((probeIndex, i) => {
+                    setTimeout(() => {
+                        this.highlightBucket(probeIndex, operation);
+                    }, 300 + i * 200);
+                });
+
+                // Clean up
+                setTimeout(() => {
+                    flyingHash.remove();
+                    this.clearHighlights();
+                }, 300 + probes.length * 200 + 500);
+            }
+
+            highlightBucket(index, operation) {
+                const buckets = this.elements.hashTable.children;
+                if (buckets[index]) {
+                    buckets[index].classList.remove('highlight', 'collision');
+                    
+                    if (operation === 'insert' && this.hashMap.buckets[index].length > 1) {
+                        buckets[index].classList.add('collision');
+                    } else {
+                        buckets[index].classList.add('highlight');
+                    }
+                }
+            }
+
+            clearHighlights() {
+                const buckets = this.elements.hashTable.children;
+                Array.from(buckets).forEach(bucket => {
+                    bucket.classList.remove('highlight', 'collision');
+                });
+            }
+
+            updateStrategy(strategy = null) {
+                strategy = strategy || this.elements.strategySelect.value;
+                this.saveState();
+                this.hashMap.strategy = strategy;
+                this.narrate(`Switched to ${strategy} collision handling.`);
+                this.render();
+            }
+
+            updateCapacity(capacity = null) {
+                capacity = capacity || parseInt(this.elements.capacitySelect.value);
+                this.saveState();
+                this.hashMap.resize(capacity);
+                this.narrate(`Resized table to capacity ${capacity}.`);
+                this.render();
+            }
+
+            updateSeed(seed = null) {
+                seed = seed || parseInt(this.elements.seedInput.value);
+                this.hashMap.hashSeed = seed;
+                this.narrate(`Changed hash seed to ${seed}.`);
+            }
+
+            updateLoadFactor(threshold = null) {
+                threshold = threshold || parseFloat(this.elements.loadFactorInput.value);
+                this.hashMap.loadFactorMax = threshold;
+                this.narrate(`Set load factor threshold to ${threshold}.`);
+            }
+
+            clear() {
+                this.saveState();
+                this.hashMap.clear();
+                this.narrate("Cleared the hash table.");
+                this.render();
+            }
+
+            forceResize() {
+                this.saveState();
+                this.hashMap.resize();
+                this.narrate(`Manually resized table to capacity ${this.hashMap.capacity}.`);
+                this.render();
+            }
+
+            loadPreset(preset) {
+                this.saveState();
+                this.clear();
+                
+                const presets = {
+                    uniform: ['apple', 'banana', 'cherry', 'date', 'elderberry'],
+                    naughty: ['aa', 'bb', 'cc', 'dd', 'ee'], // These often collide
+                    anagrams: ['listen', 'silent', 'enlist', 'inlets', 'tinsel']
+                };
+                
+                const keys = presets[preset] || [];
+                keys.forEach(key => {
+                    this.hashMap.insert(key, key);
+                });
+                
+                this.narrate(`Loaded ${preset} preset with ${keys.length} keys.`);
+                this.render();
+            }
+
+            saveState() {
+                this.history = this.history.slice(0, this.historyIndex + 1);
+                this.history.push(JSON.stringify(this.hashMap.toJSON()));
+                this.historyIndex++;
+                
+                if (this.history.length > 40) {
+                    this.history.shift();
+                    this.historyIndex--;
+                }
+            }
+
+            undo() {
+                if (this.historyIndex > 0) {
+                    this.historyIndex--;
+                    const state = JSON.parse(this.history[this.historyIndex]);
+                    this.hashMap.fromJSON(state);
+                    this.narrate("Undid last operation.");
+                    this.render();
+                }
+            }
+
+            redo() {
+                if (this.historyIndex < this.history.length - 1) {
+                    this.historyIndex++;
+                    const state = JSON.parse(this.history[this.historyIndex]);
+                    this.hashMap.fromJSON(state);
+                    this.narrate("Redid operation.");
+                    this.render();
+                }
+            }
+
+            checkChallenge(id) {
+                const challenge = this.challenges.find(c => c.id === id);
+                if (challenge && challenge.validator()) {
+                    const challengeDiv = document.querySelector(`.challenge:nth-child(${id})`);
+                    challengeDiv.classList.add('completed');
+                    this.narrate(`Challenge "${challenge.title}" completed! 🎉`);
+                    if (this.audioEnabled) this.playSound('success');
+                } else {
+                    this.narrate("Challenge not yet completed. Keep trying!");
+                }
+            }
+
+            showHint(id) {
+                const hints = {
+                    1: "Start by inserting all three keys, then use the Find button to search for 'moon'.",
+                    2: "Try using keys that are likely to hash to the same value, like 'aa' and 'bb'.",
+                    3: "Keep inserting keys until the load factor reaches 0.75 or higher.",
+                    4: "Switch to quadratic probing and insert several keys to see the probing pattern.",
+                    5: "Use linear probing, insert multiple keys, delete one in the middle, then find another."
+                };
+                this.narrate(hints[id] || "No hint available for this challenge.");
+            }
+
+            solveChallenge(id) {
+                const challenge = this.challenges.find(c => c.id === id);
+                if (challenge && challenge.solution) {
+                    challenge.solution();
+                    this.narrate(`Demonstrated solution for "${challenge.title}".`);
+                }
+            }
+
+            render() {
+                this.renderTable();
+                this.updateStats();
+                this.updateControls();
+            }
+
+            renderTable() {
+                this.elements.hashTable.innerHTML = '';
+                this.elements.hashTable.style.gridTemplateColumns = `repeat(${Math.min(this.hashMap.capacity, 10)}, 1fr)`;
+                
+                for (let i = 0; i < this.hashMap.capacity; i++) {
+                    const bucket = document.createElement('div');
+                    bucket.className = 'bucket';
+                    bucket.innerHTML = `<div class="bucket-index">${i}</div>`;
+                    
+                    const items = this.hashMap.buckets[i] || [];
+                    
+                    if (this.hashMap.tombstones.has(i) && items.length === 0) {
+                        const tombstone = document.createElement('div');
+                        tombstone.className = 'key-value tombstone';
+                        tombstone.textContent = '(deleted)';
+                        bucket.appendChild(tombstone);
+                    }
+                    
+                    items.forEach(item => {
+                        if (item) {
+                            const keyValue = document.createElement('div');
+                            keyValue.className = 'key-value';
+                            keyValue.textContent = `${item.key}:${item.value}`;
+                            keyValue.title = `Key: ${item.key}, Value: ${item.value}`;
+                            bucket.appendChild(keyValue);
+                        }
+                    });
+                    
+                    this.elements.hashTable.appendChild(bucket);
+                }
+            }
+
+            updateStats() {
+                this.elements.sizeValue.textContent = this.hashMap.size;
+                this.elements.capacityValue.textContent = this.hashMap.capacity;
+                this.elements.loadFactorValue.textContent = this.hashMap.loadFactor().toFixed(2);
+                this.elements.maxDepthValue.textContent = this.hashMap.maxDepth();
+                this.elements.avgComparisonsValue.textContent = this.hashMap.averageComparisons().toFixed(2);
+            }
+
+            updateControls() {
+                this.elements.strategySelect.value = this.hashMap.strategy;
+                this.elements.capacitySelect.value = this.hashMap.capacity;
+                this.elements.seedInput.value = this.hashMap.hashSeed;
+                this.elements.loadFactorInput.value = this.hashMap.loadFactorMax;
+                
+                document.getElementById('undoBtn').disabled = this.historyIndex <= 0;
+                document.getElementById('redoBtn').disabled = this.historyIndex >= this.history.length - 1;
+            }
+
+            updateCodePreview(operation, key, value, result) {
+                const codeSnippets = {
+                    insert: `hashMap.insert("${key}", "${value}")
+// Hash: ${this.hashMap.hash(key)} % ${this.hashMap.capacity} = ${result.probes[0]}
+// Probes: [${result.probes.join(', ')}]
+// Comparisons: ${result.comparisons}`,
+                    find: `hashMap.find("${key}")
+// Hash: ${this.hashMap.hash(key)} % ${this.hashMap.capacity} = ${result.probes[0]}
+// Probes: [${result.probes.join(', ')}]
+// Result: ${result.found ? `found at index ${result.index}` : 'not found'}`,
+                    delete: `hashMap.delete("${key}")
+// Hash: ${this.hashMap.hash(key)} % ${this.hashMap.capacity} = ${result.probes[0]}
+// Probes: [${result.probes.join(', ')}]
+// Result: ${result.deleted ? `deleted from index ${result.index}` : 'not found'}`
+                };
+                
+                this.elements.codePreview.textContent = codeSnippets[operation] || '// Code preview will appear here';
+            }
+
+            addToHistory(entry) {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.textContent = `${new Date().toLocaleTimeString()}: ${entry}`;
+                this.elements.history.insertBefore(historyItem, this.elements.history.firstChild);
+                
+                // Keep only last 20 items
+                while (this.elements.history.children.length > 20) {
+                    this.elements.history.removeChild(this.elements.history.lastChild);
+                }
+            }
+
+            narrate(message) {
+                this.elements.narration.textContent = message;
+                this.elements.liveRegion.textContent = message;
+            }
+
+            toggleTheme() {
+                const themes = ['calm', 'dark', 'high-contrast'];
+                const currentIndex = themes.indexOf(this.theme);
+                this.theme = themes[(currentIndex + 1) % themes.length];
+                document.body.setAttribute('data-theme', this.theme);
+                
+                const themeIcons = { calm: '🌙', dark: '☀️', 'high-contrast': '🔆' };
+                document.getElementById('themeBtn').textContent = themeIcons[this.theme];
+            }
+
+            toggleAudio() {
+                this.audioEnabled = !this.audioEnabled;
+                document.getElementById('audioBtn').textContent = this.audioEnabled ? '🔊' : '🔇';
+                
+                if (this.audioEnabled && !this.audioContext) {
+                    this.initializeAudio();
+                }
+            }
+
+            toggleMotion() {
+                this.motionEnabled = !this.motionEnabled;
+                document.getElementById('motionBtn').textContent = this.motionEnabled ? '⚡' : '🐌';
+                
+                const particles = document.querySelectorAll('.particle');
+                particles.forEach(particle => {
+                    particle.style.display = this.motionEnabled ? 'block' : 'none';
+                });
+            }
+
+            initializeAudio() {
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    console.warn('Audio not supported');
+                    this.audioEnabled = false;
+                }
+            }
+
+            playSound(type) {
+                if (!this.audioContext || !this.audioEnabled) return;
+                
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                const frequencies = {
+                    'insert': 440,
+                    'find-success': 554,
+                    'find-fail': 330,
+                    'delete': 370,
+                    'success': 659
+                };
+                
+                oscillator.frequency.setValueAtTime(frequencies[type] || 440, this.audioContext.currentTime);
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.1, this.audioContext.currentTime + 0.01);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.3);
+                
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + 0.3);
+            }
+        }
+
+        function toggleSection(sectionId) {
+            const content = document.getElementById(sectionId);
+            content.classList.toggle('open');
+        }
+
+        // Initialize the playground
+        let playground;
+        document.addEventListener('DOMContentLoaded', () => {
+            playground = new HashMapPlayground();
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+            
+            switch (e.key) {
+                case 'i':
+                    document.getElementById('keyInput').focus();
+                    break;
+                case 'c':
+                    if (e.ctrlKey || e.metaKey) return; // Don't interfere with copy
+                    playground.clear();
+                    break;
+                case 'u':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        playground.undo();
+                    }
+                    break;
+                case 'r':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        playground.redo();
+                    }
+                    break;
+                case 'Escape':
+                    document.getElementById('keyInput').value = '';
+                    document.getElementById('valueInput').value = '';
+                    document.getElementById('keyInput').focus();
+                    break;
+            }
+        });
+    </script>
+</body>
+</html>
