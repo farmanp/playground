@@ -1,0 +1,26 @@
+{
+  "name": "playground",
+  "version": "1.0.0",
+  "description": "*Interactive coding visualizers with a focus on gentle learning and beautiful design*",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/farmanp/playground.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/farmanp/playground/issues"
+  },
+  "homepage": "https://github.com/farmanp/playground#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.54.2"
+  }
+}
