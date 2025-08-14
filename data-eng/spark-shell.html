@@ -979,41 +979,8 @@
                         </div>
 
                         <div class="rdd-workspace">
-                            <div class="rdd-left-panel">
-                                <div id="rdd-operations-panel" class="panel">
-                                    <h3>Operations</h3>
-                                    <div class="operation-categories">
-                                        <div class="operation-category">
-                                            <h4>Transformations</h4>
-                                            <div class="operation-grid" id="transformation-ops"></div>
-                                        </div>
-                                        <div class="operation-form" id="operation-form" style="display: none;">
-                                            <div class="form-header">
-                                                <h4 id="operation-title"></h4>
-                                                <span class="operation-type" id="operation-type"></span>
-                                            </div>
-                                            <div class="form-body">
-                                                <div class="input-group" id="operation-inputs"></div>
-                                                <div class="operation-info">
-                                                    <div class="complexity" id="operation-complexity"></div>
-                                                    <div class="description" id="operation-description"></div>
-                                                </div>
-                                                <div class="form-actions">
-                                                    <button id="apply-operation" class="primary-btn">Apply</button>
-                                                    <button id="cancel-operation" class="secondary-btn">Cancel</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div id="rdd-presets-panel" class="panel">
-                                    <h3>Quick Start</h3>
-                                    <div class="preset-grid" id="preset-grid"></div>
-                                </div>
-                            </div>
-
-                            <div class="rdd-center-panel">
+                            <!-- Top Row: DAG Visualizer gets full width -->
+                            <div class="rdd-dag-row">
                                 <div id="rdd-dag-container" class="dag-container">
                                     <svg id="rdd-dag-svg" class="dag-svg" role="img" aria-label="RDD Lineage Graph">
                                         <defs>
@@ -1027,28 +994,67 @@
                                         </defs>
                                     </svg>
                                 </div>
-                                
-                                <div id="rdd-code-preview" class="code-preview">
-                                    <h4>Generated Code</h4>
-                                    <div class="code-content" id="code-content">
-                                        <pre><code>// Select an operation to see the code</code></pre>
-                                    </div>
-                                </div>
                             </div>
 
-                            <div class="rdd-right-panel">
-                                <div id="rdd-inspector-panel" class="panel">
-                                    <h3>Inspector</h3>
-                                    <div id="inspector-content">
-                                        <div class="inspector-message">
-                                            Click on an RDD node to inspect its properties
+                            <!-- Bottom Row: Controls and Info Panels -->
+                            <div class="rdd-controls-row">
+                                <div class="rdd-left-panel">
+                                    <div id="rdd-operations-panel" class="panel">
+                                        <h3>Operations</h3>
+                                        <div class="operation-categories">
+                                            <div class="operation-category">
+                                                <h4>Transformations</h4>
+                                                <div class="operation-grid" id="transformation-ops"></div>
+                                            </div>
+                                            <div class="operation-form" id="operation-form" style="display: none;">
+                                                <div class="form-header">
+                                                    <h4 id="operation-title"></h4>
+                                                    <span class="operation-type" id="operation-type"></span>
+                                                </div>
+                                                <div class="form-body">
+                                                    <div class="input-group" id="operation-inputs"></div>
+                                                    <div class="operation-info">
+                                                        <div class="complexity" id="operation-complexity"></div>
+                                                        <div class="description" id="operation-description"></div>
+                                                    </div>
+                                                    <div class="form-actions">
+                                                        <button id="apply-operation" class="primary-btn">Apply</button>
+                                                        <button id="cancel-operation" class="secondary-btn">Cancel</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div id="rdd-presets-panel" class="panel">
+                                        <h3>Quick Start</h3>
+                                        <div class="preset-grid" id="preset-grid"></div>
+                                    </div>
+                                </div>
+
+                                <div class="rdd-center-panel">
+                                    <div id="rdd-code-preview" class="code-preview">
+                                        <h4>Generated Code</h4>
+                                        <div class="code-content" id="code-content">
+                                            <pre><code>// Select an operation to see the code</code></pre>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div id="rdd-challenge-panel" class="panel" style="display: none;">
-                                    <h3>Challenge</h3>
-                                    <div id="challenge-content"></div>
+                                <div class="rdd-right-panel">
+                                    <div id="rdd-inspector-panel" class="panel">
+                                        <h3>Inspector</h3>
+                                        <div id="inspector-content">
+                                            <div class="inspector-message">
+                                                Click on an RDD node to inspect its properties
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div id="rdd-challenge-panel" class="panel" style="display: none;">
+                                        <h3>Challenge</h3>
+                                        <div id="challenge-content"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1056,10 +1062,12 @@
 
                     <style>
                         .rdd-lineage-container {
-                            height: 100%;
+                            height: 100% !important;
+                            max-height: 100% !important;
                             display: flex;
                             flex-direction: column;
                             font-family: var(--font-sans);
+                            overflow: hidden;
                         }
 
                         .rdd-toolbar {
@@ -1138,15 +1146,39 @@
                         .rdd-workspace {
                             flex: 1;
                             display: grid;
-                            grid-template-columns: 300px 1fr 280px;
+                            grid-template-rows: 400px 1fr !important;
                             gap: 1px;
                             background: var(--border-default);
                             min-height: 0;
+                            max-height: 100%;
+                        }
+
+                        .rdd-dag-row {
+                            background: var(--bg-primary);
+                            border: 1px solid var(--border-default);
+                            margin: 0.5rem;
+                            border-radius: 6px;
+                            overflow: hidden;
+                            width: 100% !important;
+                            height: 100% !important;
+                            min-height: 0 !important;
+                            max-height: 100% !important;
+                            position: relative !important;
+                            flex: 1 1 50% !important;
+                        }
+
+                        .rdd-controls-row {
+                            display: grid;
+                            grid-template-columns: 300px 1fr 280px !important;
+                            gap: 1px;
+                            background: var(--border-default);
                         }
 
                         .rdd-left-panel, .rdd-center-panel, .rdd-right-panel {
                             background: var(--bg-primary);
                             overflow-y: auto;
+                            min-width: 0;
+                            max-width: 100%;
                         }
 
                         .panel {
@@ -1202,6 +1234,9 @@
                             border: 1px solid var(--border-default);
                             border-radius: 6px;
                             padding: 1rem;
+                            width: 100%;
+                            max-width: 100%;
+                            box-sizing: border-box;
                         }
 
                         .form-header {
@@ -1344,19 +1379,21 @@
                         }
 
                         .dag-container {
-                            flex: 1;
+                            height: 100% !important;
+                            width: 100% !important;
+                            max-height: 100% !important;
+                            max-width: 100% !important;
+                            min-height: 0 !important;
+                            min-width: 0 !important;
                             position: relative;
                             background: var(--bg-primary);
-                            border-radius: 6px;
-                            margin: 1rem;
-                            border: 1px solid var(--border-default);
                             overflow: hidden;
+                            flex: none !important;
                         }
 
                         .dag-svg {
                             width: 100%;
                             height: 100%;
-                            min-height: 500px;
                         }
 
                         .rdd-node {
@@ -1412,7 +1449,7 @@
                         }
 
                         .code-preview {
-                            margin: 1rem;
+                            margin: 0.75rem;
                             background: var(--bg-secondary);
                             border: 1px solid var(--border-default);
                             border-radius: 6px;
@@ -1709,16 +1746,27 @@
                 
                 console.log('Container dimensions:', containerRect.width, 'x', containerRect.height);
                 
-                // Set a much smaller viewBox to make nodes appear larger
-                svg.setAttribute('viewBox', '200 100 400 200');
+                // Calculate bounds of all RDDs to set appropriate viewBox
+                const rdds = Array.from(this.rdds.values());
+                if (rdds.length > 0) {
+                    const minX = Math.min(...rdds.map(rdd => rdd.x)) - 50;
+                    const maxX = Math.max(...rdds.map(rdd => rdd.x + 300)) + 50;
+                    const minY = Math.min(...rdds.map(rdd => rdd.y)) - 50;
+                    const maxY = Math.max(...rdds.map(rdd => rdd.y + 100)) + 50;
+                    
+                    const viewBoxWidth = maxX - minX;
+                    const viewBoxHeight = maxY - minY;
+                    
+                    svg.setAttribute('viewBox', `${minX} ${minY} ${viewBoxWidth} ${viewBoxHeight}`);
+                    console.log(`SVG viewBox set to: ${minX} ${minY} ${viewBoxWidth} ${viewBoxHeight}`);
+                } else {
+                    svg.setAttribute('viewBox', '50 50 700 350');
+                }
+                
                 svg.setAttribute('width', '100%');
                 svg.setAttribute('height', '100%');
                 
-                console.log('SVG viewBox set to: 200 100 400 200');
-                
                 svg.innerHTML = svg.querySelector('defs').outerHTML;
-
-                const rdds = Array.from(this.rdds.values());
                 
                 rdds.forEach(rdd => {
                     rdd.dependencies.forEach(depId => {
