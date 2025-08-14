@@ -1,0 +1,23 @@
+{
+  "name": "spark-abstractions-lab-tests",
+  "version": "1.0.0",
+  "description": "Playwright tests for Spark Abstractions Lab UI",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  },
+  "keywords": [
+    "playwright",
+    "testing",
+    "spark",
+    "ui",
+    "visualization"
+  ]
+}
