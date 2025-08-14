@@ -764,59 +764,6 @@
 
         window.SparkLab = new SparkLab();
 
-        // Register modules after SparkLab is initialized
-        window.SparkLab.registerModule({
-            id: 'rdd-lineage',
-            title: 'RDD Lineage',
-            subtitle: 'Visualize transformation dependencies',
-            icon: '🔗',
-            routes: [
-                { id: 'playground', label: 'Interactive Playground' },
-                { id: 'challenges', label: 'Learning Challenges' },
-                { id: 'examples', label: 'Real-world Examples' }
-            ],
-            init(element, api) {
-                const rddLineageModule = new RDDLineageModule(element, api);
-                rddLineageModule.init();
-            },
-            tests() {
-                return [
-                    {
-                        name: 'Module renders without errors',
-                        run() {
-                            return document.getElementById('module-rdd-lineage') !== null;
-                        }
-                    },
-                    {
-                        name: 'DAG visualization container exists',
-                        run() {
-                            return document.querySelector('#rdd-dag-container') !== null;
-                        }
-                    },
-                    {
-                        name: 'Operations panel exists',
-                        run() {
-                            return document.querySelector('#rdd-operations-panel') !== null;
-                        }
-                    }
-                ];
-            },
-            about: {
-                learningOutcomes: [
-                    'Understand RDD transformation lineage and dependencies',
-                    'Visualize how operations create new RDDs',
-                    'Identify wide vs narrow transformations',
-                    'Recognize stage boundaries and shuffles',
-                    'Optimize transformation chains for performance'
-                ],
-                references: [
-                    'Apache Spark RDD Programming Guide',
-                    'Spark Performance Tuning',
-                    'Resilient Distributed Datasets Paper'
-                ]
-            }
-        });
-
         class RDDLineageModule {
             constructor(element, api) {
                 this.element = element;
@@ -1549,15 +1496,15 @@
             }
 
             setupEventListeners() {
-                const resetBtn = document.getElementById('rdd-reset');
-                const undoBtn = document.getElementById('rdd-undo');
-                const redoBtn = document.getElementById('rdd-redo');
+                const resetBtn = this.element.querySelector('#rdd-reset');
+                const undoBtn = this.element.querySelector('#rdd-undo');
+                const redoBtn = this.element.querySelector('#rdd-redo');
 
                 resetBtn.addEventListener('click', () => this.resetLineage());
                 undoBtn.addEventListener('click', () => this.undo());
                 redoBtn.addEventListener('click', () => this.redo());
 
-                document.querySelectorAll('.route-tab').forEach(tab => {
+                this.element.querySelectorAll('.route-tab').forEach(tab => {
                     tab.addEventListener('click', (e) => {
                         const route = e.target.dataset.route;
                         this.switchRoute(route);
@@ -1592,7 +1539,7 @@
             }
 
             renderOperations() {
-                const container = document.getElementById('transformation-ops');
+                const container = this.element.querySelector('#transformation-ops');
                 container.innerHTML = '';
 
                 Object.entries(this.operationTemplates).forEach(([key, op]) => {
@@ -1606,7 +1553,7 @@
             }
 
             renderPresets() {
-                const container = document.getElementById('preset-grid');
+                const container = this.element.querySelector('#preset-grid');
                 container.innerHTML = '';
 
                 Object.entries(this.presets).forEach(([key, preset]) => {
@@ -1625,12 +1572,12 @@
                 const operation = this.operationTemplates[operationKey];
                 if (!operation) return;
 
-                const form = document.getElementById('operation-form');
-                const title = document.getElementById('operation-title');
-                const type = document.getElementById('operation-type');
-                const inputs = document.getElementById('operation-inputs');
-                const complexity = document.getElementById('operation-complexity');
-                const description = document.getElementById('operation-description');
+                const form = this.element.querySelector('#operation-form');
+                const title = this.element.querySelector('#operation-title');
+                const type = this.element.querySelector('#operation-type');
+                const inputs = this.element.querySelector('#operation-inputs');
+                const complexity = this.element.querySelector('#operation-complexity');
+                const description = this.element.querySelector('#operation-description');
 
                 title.textContent = operation.name;
                 type.textContent = operation.type;
@@ -1682,18 +1629,18 @@
 
                 form.style.display = 'block';
 
-                document.getElementById('apply-operation').onclick = () => {
+                this.element.querySelector('#apply-operation').onclick = () => {
                     this.applyOperation(operationKey);
                 };
 
-                document.getElementById('cancel-operation').onclick = () => {
+                this.element.querySelector('#cancel-operation').onclick = () => {
                     form.style.display = 'none';
                 };
             }
 
             applyOperation(operationKey) {
                 const operation = this.operationTemplates[operationKey];
-                const sourceRddId = document.getElementById('source-rdd').value;
+                const sourceRddId = this.element.querySelector('#source-rdd').value;
                 const sourceRdd = this.rdds.get(sourceRddId);
 
                 if (!sourceRdd) return;
@@ -1713,7 +1660,7 @@
                 };
 
                 if (operation.requiresSecondRdd) {
-                    const secondRddId = document.getElementById('second-rdd').value;
+                    const secondRddId = this.element.querySelector('#second-rdd').value;
                     if (secondRddId && secondRddId !== sourceRddId) {
                         newRdd.dependencies.push(secondRddId);
                         const secondRdd = this.rdds.get(secondRddId);
@@ -1722,7 +1669,7 @@
                 }
 
                 if (operation.inputPlaceholder) {
-                    const functionInput = document.getElementById('operation-function').value;
+                    const functionInput = this.element.querySelector('#operation-function').value;
                     newRdd.function = functionInput;
                     newRdd.name = `${operation.name}(${functionInput})`;
                 }
@@ -1735,16 +1682,14 @@
                 this.generateCode();
                 this.updateInspector(newRddId);
                 
-                document.getElementById('operation-form').style.display = 'none';
+                this.element.querySelector('#operation-form').style.display = 'none';
                 this.api.announceToScreenReader(`Applied ${operation.name} operation`);
             }
 
             renderDAG() {
-                const svg = document.getElementById('rdd-dag-svg');
+                const svg = this.element.querySelector('#rdd-dag-svg');
                 const container = svg.parentElement;
                 const containerRect = container.getBoundingClientRect();
-                
-                console.log('Container dimensions:', containerRect.width, 'x', containerRect.height);
                 
                 // Calculate bounds of all RDDs to set appropriate viewBox
                 const rdds = Array.from(this.rdds.values());
@@ -1758,7 +1703,6 @@
                     const viewBoxHeight = maxY - minY;
                     
                     svg.setAttribute('viewBox', `${minX} ${minY} ${viewBoxWidth} ${viewBoxHeight}`);
-                    console.log(`SVG viewBox set to: ${minX} ${minY} ${viewBoxWidth} ${viewBoxHeight}`);
                 } else {
                     svg.setAttribute('viewBox', '50 50 700 350');
                 }
@@ -1766,7 +1710,8 @@
                 svg.setAttribute('width', '100%');
                 svg.setAttribute('height', '100%');
                 
-                svg.innerHTML = svg.querySelector('defs').outerHTML;
+                const defs = svg.querySelector('defs');
+                svg.innerHTML = defs ? defs.outerHTML : '';
                 
                 rdds.forEach(rdd => {
                     rdd.dependencies.forEach(depId => {
@@ -1818,7 +1763,6 @@
                 rect.setAttribute('width', 300);
                 rect.setAttribute('height', 100);
                 
-                console.log(`Rendering RDD ${rdd.id} at (${rdd.x}, ${rdd.y}) with size 300x100`);
 
                 const nameText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                 nameText.setAttribute('class', 'rdd-text');
@@ -1859,7 +1803,7 @@
 
             updateInspector(rddId) {
                 const rdd = this.rdds.get(rddId);
-                const content = document.getElementById('inspector-content');
+                const content = this.element.querySelector('#inspector-content');
 
                 if (!rdd) {
                     content.innerHTML = '<div class="inspector-message">RDD not found</div>';
@@ -1919,7 +1863,7 @@
             }
 
             generateCode() {
-                const content = document.getElementById('code-content');
+                const content = this.element.querySelector('#code-content');
                 let code = '// RDD Lineage Code\n\n';
                 
                 const rdds = Array.from(this.rdds.values());
@@ -2006,8 +1950,8 @@
             }
 
             updateHistoryButtons() {
-                const undoBtn = document.getElementById('rdd-undo');
-                const redoBtn = document.getElementById('rdd-redo');
+                const undoBtn = this.element.querySelector('#rdd-undo');
+                const redoBtn = this.element.querySelector('#rdd-redo');
                 
                 undoBtn.disabled = this.historyIndex <= 0;
                 redoBtn.disabled = this.historyIndex >= this.history.length - 1;
@@ -2025,11 +1969,11 @@
             }
 
             switchRoute(route) {
-                document.querySelectorAll('.route-tab').forEach(tab => {
+                this.element.querySelectorAll('.route-tab').forEach(tab => {
                     tab.classList.toggle('active', tab.dataset.route === route);
                 });
                 
-                const challengePanel = document.getElementById('rdd-challenge-panel');
+                const challengePanel = this.element.querySelector('#rdd-challenge-panel');
                 
                 if (route === 'challenges') {
                     challengePanel.style.display = 'block';
@@ -2089,7 +2033,7 @@
             }
 
             showChallenges() {
-                const content = document.getElementById('challenge-content');
+                const content = this.element.querySelector('#challenge-content');
                 
                 if (!this.currentChallenge) {
                     content.innerHTML = `
@@ -2097,7 +2041,7 @@
                             <h4>Learning Challenges</h4>
                             <p>Test your understanding of RDD lineage concepts:</p>
                             ${this.challenges.map(challenge => `
-                                <button class="challenge-btn" onclick="rddLineageModule.startChallenge('${challenge.id}')">
+                                <button class="challenge-btn" data-id="${challenge.id}">
                                     <div class="challenge-title">${challenge.title}</div>
                                     <div class="challenge-desc">${challenge.description}</div>
                                 </button>
@@ -2131,6 +2075,13 @@
                             }
                         </style>
                     `;
+                    
+                    // Bind challenge button handlers
+                    this.element.querySelectorAll('.challenge-btn').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            this.startChallenge(btn.dataset.id);
+                        });
+                    });
                 } else {
                     this.renderCurrentChallenge();
                 }
@@ -2146,7 +2097,7 @@
             }
 
             renderCurrentChallenge() {
-                const content = document.getElementById('challenge-content');
+                const content = this.element.querySelector('#challenge-content');
                 const isComplete = this.currentChallenge.checkSolution();
                 
                 content.innerHTML = `
@@ -2168,10 +2119,10 @@
                         ` : ''}
                         
                         <div class="challenge-actions">
-                            <button onclick="rddLineageModule.checkChallenge()" class="check-btn">
+                            <button id="check-challenge-btn" class="check-btn">
                                 Check Solution
                             </button>
-                            <button onclick="rddLineageModule.exitChallenge()" class="exit-btn">
+                            <button id="exit-challenge-btn" class="exit-btn">
                                 Exit Challenge
                             </button>
                         </div>
@@ -2239,6 +2190,14 @@
                         }
                     </style>
                 `;
+                
+                // Bind challenge action handlers
+                this.element.querySelector('#check-challenge-btn').addEventListener('click', () => {
+                    this.checkChallenge();
+                });
+                this.element.querySelector('#exit-challenge-btn').addEventListener('click', () => {
+                    this.exitChallenge();
+                });
             }
 
             checkChallenge() {
@@ -2281,8 +2240,8 @@
                 };
                 
                 this.rddCounter = 2;
-                this.rdds.set('rdd_0', pairsRdd);
-                this.rdds.delete('rdd_0');
+                this.rdds.clear();
+                this.rddCounter = 2;
                 this.rdds.set('rdd_1', pairsRdd);
                 this.saveToHistory();
                 this.renderDAG();
@@ -3060,7 +3019,7 @@
 
             setupEventListeners() {
                 // Route switching
-                document.querySelectorAll('.route-tab').forEach(tab => {
+                this.element.querySelectorAll('.route-tab').forEach(tab => {
                     tab.addEventListener('click', (e) => {
                         const route = e.target.dataset.route;
                         this.switchRoute(route);
@@ -3068,38 +3027,38 @@
                 });
 
                 // Controls
-                document.getElementById('partition-count').addEventListener('input', (e) => {
+                this.element.querySelector('#partition-count').addEventListener('input', (e) => {
                     this.partitionCount = parseInt(e.target.value);
-                    document.getElementById('partition-count-value').textContent = this.partitionCount;
+                    this.element.querySelector('#partition-count-value').textContent = this.partitionCount;
                     this.updatePartitions();
                 });
 
-                document.getElementById('strategy-select').addEventListener('change', (e) => {
+                this.element.querySelector('#strategy-select').addEventListener('change', (e) => {
                     this.currentStrategy = e.target.value;
                     this.updateStrategy();
                 });
 
-                document.getElementById('data-skew').addEventListener('input', (e) => {
+                this.element.querySelector('#data-skew').addEventListener('input', (e) => {
                     this.dataSkew = parseInt(e.target.value);
-                    document.getElementById('data-skew-value').textContent = this.dataSkew + '%';
+                    this.element.querySelector('#data-skew-value').textContent = this.dataSkew + '%';
                     this.regenerateData();
                 });
 
-                document.getElementById('animation-speed').addEventListener('input', (e) => {
+                this.element.querySelector('#animation-speed').addEventListener('input', (e) => {
                     this.animationSpeed = 1000 / parseFloat(e.target.value);
-                    document.getElementById('speed-value').textContent = e.target.value + 'x';
+                    this.element.querySelector('#speed-value').textContent = e.target.value + 'x';
                 });
 
-                document.getElementById('dataset-select').addEventListener('change', (e) => {
+                this.element.querySelector('#dataset-select').addEventListener('change', (e) => {
                     this.loadDataset(e.target.value);
                 });
 
                 // Toolbar buttons
-                document.getElementById('start-flow').addEventListener('click', () => {
+                this.element.querySelector('#start-flow').addEventListener('click', () => {
                     this.startDataFlow();
                 });
 
-                document.getElementById('reset-partitions').addEventListener('click', () => {
+                this.element.querySelector('#reset-partitions').addEventListener('click', () => {
                     this.resetPartitions();
                 });
             }
@@ -3206,12 +3165,12 @@
 
             updateStrategy() {
                 const strategy = this.partitioningStrategies[this.currentStrategy];
-                const partitionerLabel = document.getElementById('partitioner-label');
-                const strategyInfo = document.getElementById('strategy-info');
+                const partitionerLabel = this.element.querySelector('#partitioner-label');
+                const strategyInfo = this.element.querySelector('#strategy-info');
                 
                 if (partitionerLabel) {
                     partitionerLabel.textContent = strategy.name;
-                    document.getElementById('partitioner-box').style.backgroundColor = strategy.color;
+                    this.element.querySelector('#partitioner-box').style.backgroundColor = strategy.color;
                 }
                 
                 if (strategyInfo) {
@@ -3263,7 +3222,7 @@
             }
 
             renderDataSource() {
-                const container = document.getElementById('data-source');
+                const container = this.element.querySelector('#data-source');
                 if (!container) return;
                 
                 container.innerHTML = '';
@@ -3286,7 +3245,7 @@
             }
 
             renderPartitionBins() {
-                const container = document.getElementById('partition-bins');
+                const container = this.element.querySelector('#partition-bins');
                 if (!container) return;
                 
                 container.innerHTML = '';
@@ -3314,7 +3273,7 @@
                     container.appendChild(bin);
                     
                     // Render items in partition
-                    const content = document.getElementById(`partition-${i}`);
+                    const content = this.element.querySelector(`#partition-${i}`);
                     const partitionData = this.partitions[i] || [];
                     const maxVisible = 20;
                     
@@ -3354,14 +3313,14 @@
                 else if (variance > 5) balanceText = 'Good';
                 
                 // Update DOM
-                document.getElementById('total-items').textContent = totalItems;
-                document.getElementById('avg-per-partition').textContent = avgPerPartition;
-                document.getElementById('load-balance').textContent = balanceText;
-                document.getElementById('skew-factor').textContent = Math.round(variance) + '%';
+                this.element.querySelector('#total-items').textContent = totalItems;
+                this.element.querySelector('#avg-per-partition').textContent = avgPerPartition;
+                this.element.querySelector('#load-balance').textContent = balanceText;
+                this.element.querySelector('#skew-factor').textContent = Math.round(variance) + '%';
             }
 
             updateDistributionChart() {
-                const canvas = document.getElementById('distribution-chart');
+                const canvas = this.element.querySelector('#distribution-chart');
                 if (!canvas) return;
                 
                 const ctx = canvas.getContext('2d');
@@ -3417,7 +3376,7 @@
             }
 
             animateItemFlow(item) {
-                const track = document.getElementById('conveyor-track');
+                const track = this.element.querySelector('#conveyor-track');
                 if (!track) return;
                 
                 const itemEl = document.createElement('div');
@@ -3448,12 +3407,12 @@
 
             switchRoute(route) {
                 // Update active tab
-                document.querySelectorAll('.route-tab').forEach(tab => {
+                this.element.querySelectorAll('.route-tab').forEach(tab => {
                     tab.classList.toggle('active', tab.dataset.route === route);
                 });
                 
                 // Show/hide challenge panel
-                const challengePanel = document.getElementById('challenge-panel');
+                const challengePanel = this.element.querySelector('#challenge-panel');
                 if (route === 'challenges') {
                     challengePanel.style.display = 'block';
                     this.showChallenges();
@@ -3464,15 +3423,15 @@
                 // Update strategy based on route
                 if (route === 'hash') {
                     this.currentStrategy = 'hash';
-                    document.getElementById('strategy-select').value = 'hash';
+                    this.element.querySelector('#strategy-select').value = 'hash';
                     this.updateStrategy();
                 } else if (route === 'range') {
                     this.currentStrategy = 'range';
-                    document.getElementById('strategy-select').value = 'range';
+                    this.element.querySelector('#strategy-select').value = 'range';
                     this.updateStrategy();
                 } else if (route === 'custom') {
                     this.currentStrategy = 'custom';
-                    document.getElementById('strategy-select').value = 'custom';
+                    this.element.querySelector('#strategy-select').value = 'custom';
                     this.updateStrategy();
                 }
                 
@@ -3480,7 +3439,7 @@
             }
 
             showChallenges() {
-                const content = document.getElementById('challenge-content');
+                const content = this.element.querySelector('#challenge-content');
                 if (!content) return;
                 
                 if (!this.currentChallenge) {
@@ -3489,7 +3448,7 @@
                             <h4>Partitioning Challenges</h4>
                             <p>Test your partitioning strategies:</p>
                             ${this.challenges.map(challenge => `
-                                <button class="challenge-btn" onclick="window.partitioningModule.startChallenge('${challenge.id}')">
+                                <button class="challenge-btn" data-id="${challenge.id}">
                                     <div class="challenge-title">${challenge.title}</div>
                                     <div class="challenge-desc">${challenge.description}</div>
                                     <div class="challenge-goal">${challenge.goal}</div>
@@ -3497,6 +3456,13 @@
                             `).join('')}
                         </div>
                     `;
+                    
+                    // Bind challenge button handlers
+                    this.element.querySelectorAll('.challenge-btn').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            this.startChallenge(btn.dataset.id);
+                        });
+                    });
                 } else {
                     this.renderCurrentChallenge();
                 }
@@ -3512,7 +3478,7 @@
             }
 
             renderCurrentChallenge() {
-                const content = document.getElementById('challenge-content');
+                const content = this.element.querySelector('#challenge-content');
                 const isComplete = this.currentChallenge.validator();
                 
                 content.innerHTML = `
@@ -3535,15 +3501,23 @@
                         ` : ''}
                         
                         <div class="challenge-actions">
-                            <button onclick="window.partitioningModule.checkChallenge()" class="check-btn">
+                            <button id="check-challenge-btn" class="check-btn">
                                 Check Solution
                             </button>
-                            <button onclick="window.partitioningModule.exitChallenge()" class="exit-btn">
+                            <button id="exit-challenge-btn" class="exit-btn">
                                 Exit Challenge
                             </button>
                         </div>
                     </div>
                 `;
+                
+                // Bind challenge action handlers
+                this.element.querySelector('#check-challenge-btn').addEventListener('click', () => {
+                    this.checkChallenge();
+                });
+                this.element.querySelector('#exit-challenge-btn').addEventListener('click', () => {
+                    this.exitChallenge();
+                });
             }
 
             checkChallenge() {
