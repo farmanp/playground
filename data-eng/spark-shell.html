@@ -1,0 +1,2465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spark Abstractions Lab</title>
+    <style>
+        :root {
+            --bg-primary: #fafbfc;
+            --bg-secondary: #ffffff;
+            --bg-accent: #f6f8fa;
+            --text-primary: #24292f;
+            --text-secondary: #656d76;
+            --text-muted: #8b949e;
+            --border-default: #d0d7de;
+            --border-muted: #e1e8ed;
+            --accent-emphasis: #0969da;
+            --accent-fg: #0550ae;
+            --accent-subtle: #ddf4ff;
+            --success-emphasis: #1a7f37;
+            --attention-emphasis: #9a6700;
+            --danger-emphasis: #d1242f;
+            --shadow-small: 0 1px 3px rgba(16, 22, 26, 0.1);
+            --shadow-medium: 0 4px 6px rgba(16, 22, 26, 0.1);
+            --gradient-subtle: linear-gradient(135deg, #f6f8fa 0%, #ffffff 100%);
+            --gradient-accent: linear-gradient(135deg, #ddf4ff 0%, #f0f9ff 100%);
+            --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: #0d1117;
+                --bg-secondary: #161b22;
+                --bg-accent: #21262d;
+                --text-primary: #e6edf3;
+                --text-secondary: #7d8590;
+                --text-muted: #656d76;
+                --border-default: #30363d;
+                --border-muted: #21262d;
+                --accent-emphasis: #58a6ff;
+                --accent-fg: #79c0ff;
+                --accent-subtle: #0c2d6b;
+                --success-emphasis: #3fb950;
+                --attention-emphasis: #d29922;
+                --danger-emphasis: #f85149;
+                --shadow-small: 0 1px 3px rgba(1, 4, 9, 0.12);
+                --shadow-medium: 0 4px 6px rgba(1, 4, 9, 0.12);
+                --gradient-subtle: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
+                --gradient-accent: linear-gradient(135deg, #0c2d6b 0%, #1c2e4a 100%);
+            }
+        }
+
+        .high-contrast {
+            --bg-primary: #ffffff;
+            --bg-secondary: #ffffff;
+            --bg-accent: #f0f0f0;
+            --text-primary: #000000;
+            --text-secondary: #000000;
+            --text-muted: #666666;
+            --border-default: #000000;
+            --border-muted: #666666;
+            --accent-emphasis: #0000ff;
+            --accent-fg: #0000ff;
+            --accent-subtle: #e6f3ff;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .high-contrast {
+                --bg-primary: #000000;
+                --bg-secondary: #000000;
+                --bg-accent: #1a1a1a;
+                --text-primary: #ffffff;
+                --text-secondary: #ffffff;
+                --text-muted: #cccccc;
+                --border-default: #ffffff;
+                --border-muted: #cccccc;
+                --accent-emphasis: #66b3ff;
+                --accent-fg: #66b3ff;
+                --accent-subtle: #003d7a;
+            }
+        }
+
+        .reduced-motion * {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-header {
+            background: var(--gradient-subtle);
+            border-bottom: 1px solid var(--border-default);
+            padding: 1rem 2rem;
+            box-shadow: var(--shadow-small);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+
+        .app-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .app-title:hover {
+            color: var(--accent-emphasis);
+            transition: color 0.2s ease;
+        }
+
+        .app-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--gradient-accent);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.125rem;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .control-button {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .control-button:hover {
+            background: var(--bg-accent);
+            border-color: var(--accent-emphasis);
+            color: var(--text-primary);
+        }
+
+        .control-button.active {
+            background: var(--accent-subtle);
+            border-color: var(--accent-emphasis);
+            color: var(--accent-fg);
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            min-height: 0;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-default);
+            padding: 1.5rem 0;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .sidebar-section {
+            margin-bottom: 2rem;
+        }
+
+        .sidebar-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            color: var(--text-muted);
+            padding: 0 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .module-list {
+            list-style: none;
+        }
+
+        .module-item {
+            margin-bottom: 0.25rem;
+        }
+
+        .module-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .module-link:hover {
+            background: var(--bg-accent);
+            color: var(--text-primary);
+            border-left-color: var(--border-default);
+        }
+
+        .module-link.active {
+            background: var(--accent-subtle);
+            color: var(--accent-fg);
+            border-left-color: var(--accent-emphasis);
+            font-weight: 500;
+        }
+
+        .module-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            flex-shrink: 0;
+        }
+
+        .module-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .module-name {
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.125rem;
+        }
+
+        .module-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .content-area {
+            flex: 1;
+            background: var(--bg-primary);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .module-container {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            height: 100%;
+            padding: 3rem;
+        }
+
+        .welcome-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--gradient-accent);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .welcome-title {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .welcome-subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            max-width: 500px;
+        }
+
+        .getting-started {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-default);
+            border-radius: 8px;
+            padding: 1.5rem;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .getting-started h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .getting-started ul {
+            list-style: none;
+            space-y: 0.5rem;
+        }
+
+        .getting-started li {
+            padding: 0.5rem 0;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-muted);
+        }
+
+        .getting-started li:last-child {
+            border-bottom: none;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                order: 2;
+                border-right: none;
+                border-top: 1px solid var(--border-default);
+            }
+            
+            .content-area {
+                order: 1;
+            }
+            
+            .header-content {
+                padding: 0 1rem;
+            }
+            
+            .module-container {
+                padding: 1rem;
+            }
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        [role="status"] {
+            position: absolute;
+            left: -9999px;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header" role="banner">
+        <div class="header-content">
+            <a href="#" class="app-title" role="link" aria-label="Spark Abstractions Lab Home">
+                <div class="app-icon" aria-hidden="true">⚡</div>
+                <span>Spark Abstractions Lab</span>
+            </a>
+            
+            <div class="header-controls">
+                <button class="control-button" id="highContrastToggle" 
+                        aria-label="Toggle high contrast mode"
+                        role="button">
+                    <span aria-hidden="true">🔆</span>
+                    <span>High Contrast</span>
+                </button>
+                
+                <button class="control-button" id="reducedMotionToggle" 
+                        aria-label="Toggle reduced motion"
+                        role="button">
+                    <span aria-hidden="true">🔄</span>
+                    <span>Reduced Motion</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-container" role="main">
+        <nav class="sidebar" role="navigation" aria-label="Module navigation">
+            <div class="sidebar-section">
+                <h2 class="sidebar-title">Modules</h2>
+                <ul class="module-list" id="moduleList" role="list">
+                </ul>
+            </div>
+        </nav>
+
+        <div class="content-area">
+            <div class="module-container" id="moduleContainer" role="region" aria-label="Module content">
+                <div class="welcome-screen" id="welcomeScreen">
+                    <div class="welcome-icon" aria-hidden="true">⚡</div>
+                    <h1 class="welcome-title">Spark Abstractions Lab</h1>
+                    <p class="welcome-subtitle">
+                        Interactive simulators for understanding Apache Spark's core concepts through visual exploration and hands-on experimentation.
+                    </p>
+                    <div class="getting-started">
+                        <h3>Getting Started</h3>
+                        <ul>
+                            <li>Select a module from the sidebar to begin</li>
+                            <li>Use accessibility controls in the header</li>
+                            <li>Each module includes interactive challenges</li>
+                            <li>All content works offline</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div role="status" aria-live="polite" id="ariaStatus"></div>
+
+    <script>
+        class SparkLab {
+            constructor() {
+                this.modules = new Map();
+                this.currentModule = null;
+                this.currentRoute = null;
+                this.eventListeners = new Map();
+                
+                this.elements = {
+                    moduleList: document.getElementById('moduleList'),
+                    moduleContainer: document.getElementById('moduleContainer'),
+                    welcomeScreen: document.getElementById('welcomeScreen'),
+                    ariaStatus: document.getElementById('ariaStatus'),
+                    highContrastToggle: document.getElementById('highContrastToggle'),
+                    reducedMotionToggle: document.getElementById('reducedMotionToggle')
+                };
+                
+                this.initializeAccessibility();
+                this.initializeEventListeners();
+                this.loadSettings();
+            }
+
+            registerModule(moduleConfig) {
+                const { id, title, subtitle, icon, routes, init, tests, about } = moduleConfig;
+                
+                if (!id || !title || !init) {
+                    console.error('Invalid module configuration:', moduleConfig);
+                    return false;
+                }
+
+                this.modules.set(id, {
+                    id,
+                    title,
+                    subtitle: subtitle || '',
+                    icon: icon || '📦',
+                    routes: routes || [{ id: 'main', label: 'Main' }],
+                    init,
+                    tests: tests || (() => []),
+                    about: about || { learningOutcomes: [], references: [] }
+                });
+
+                this.renderModuleList();
+                this.announceToScreenReader(`Module ${title} registered`);
+                return true;
+            }
+
+            renderModuleList() {
+                this.elements.moduleList.innerHTML = '';
+                
+                for (const [id, module] of this.modules) {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'module-item';
+                    
+                    const link = document.createElement('a');
+                    link.href = `#${id}`;
+                    link.className = 'module-link';
+                    link.setAttribute('data-module-id', id);
+                    link.setAttribute('role', 'menuitem');
+                    link.setAttribute('aria-describedby', `${id}-description`);
+                    
+                    if (this.currentModule === id) {
+                        link.classList.add('active');
+                        link.setAttribute('aria-current', 'page');
+                    }
+                    
+                    link.innerHTML = `
+                        <div class="module-icon" aria-hidden="true">${module.icon}</div>
+                        <div class="module-info">
+                            <div class="module-name">${module.title}</div>
+                            <div class="module-subtitle" id="${id}-description">${module.subtitle}</div>
+                        </div>
+                    `;
+                    
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.loadModule(id);
+                    });
+                    
+                    link.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            this.loadModule(id);
+                        }
+                    });
+                    
+                    listItem.appendChild(link);
+                    this.elements.moduleList.appendChild(listItem);
+                }
+            }
+
+            loadModule(moduleId, routeId = null) {
+                const module = this.modules.get(moduleId);
+                if (!module) {
+                    console.error(`Module ${moduleId} not found`);
+                    return false;
+                }
+
+                this.currentModule = moduleId;
+                this.currentRoute = routeId || module.routes[0]?.id || 'main';
+                
+                this.elements.welcomeScreen.style.display = 'none';
+                this.elements.moduleContainer.innerHTML = '';
+                
+                const moduleElement = document.createElement('div');
+                moduleElement.id = `module-${moduleId}`;
+                moduleElement.setAttribute('role', 'region');
+                moduleElement.setAttribute('aria-label', `${module.title} module`);
+                
+                this.elements.moduleContainer.appendChild(moduleElement);
+                
+                const api = this.createModuleAPI(moduleId);
+                
+                try {
+                    module.init(moduleElement, api);
+                    this.announceToScreenReader(`Loaded ${module.title} module`);
+                    this.renderModuleList();
+                    this.updateURL();
+                    this.saveSettings();
+                } catch (error) {
+                    console.error(`Error initializing module ${moduleId}:`, error);
+                    this.showError(`Failed to load module: ${module.title}`);
+                }
+                
+                return true;
+            }
+
+            createModuleAPI(moduleId) {
+                return {
+                    emit: (event, data) => {
+                        this.emit(`module:${moduleId}:${event}`, data);
+                    },
+                    subscribe: (event, callback) => {
+                        return this.subscribe(`module:${moduleId}:${event}`, callback);
+                    },
+                    announceToScreenReader: (message) => {
+                        this.announceToScreenReader(message);
+                    },
+                    getCurrentRoute: () => this.currentRoute,
+                    navigateToRoute: (routeId) => {
+                        this.currentRoute = routeId;
+                        this.updateURL();
+                    }
+                };
+            }
+
+            emit(event, data) {
+                const listeners = this.eventListeners.get(event) || [];
+                listeners.forEach(callback => {
+                    try {
+                        callback(data);
+                    } catch (error) {
+                        console.error(`Error in event listener for ${event}:`, error);
+                    }
+                });
+            }
+
+            subscribe(event, callback) {
+                if (!this.eventListeners.has(event)) {
+                    this.eventListeners.set(event, []);
+                }
+                this.eventListeners.get(event).push(callback);
+                
+                return () => {
+                    const listeners = this.eventListeners.get(event);
+                    if (listeners) {
+                        const index = listeners.indexOf(callback);
+                        if (index > -1) {
+                            listeners.splice(index, 1);
+                        }
+                    }
+                };
+            }
+
+            announceToScreenReader(message) {
+                this.elements.ariaStatus.textContent = message;
+                setTimeout(() => {
+                    this.elements.ariaStatus.textContent = '';
+                }, 1000);
+            }
+
+            showError(message) {
+                this.elements.moduleContainer.innerHTML = `
+                    <div style="padding: 2rem; text-align: center; color: var(--danger-emphasis);">
+                        <h2>Error</h2>
+                        <p>${message}</p>
+                    </div>
+                `;
+                this.announceToScreenReader(message);
+            }
+
+            initializeAccessibility() {
+                this.elements.highContrastToggle.addEventListener('click', () => {
+                    document.body.classList.toggle('high-contrast');
+                    this.elements.highContrastToggle.classList.toggle('active');
+                    const isActive = document.body.classList.contains('high-contrast');
+                    this.announceToScreenReader(`High contrast ${isActive ? 'enabled' : 'disabled'}`);
+                    this.saveSettings();
+                });
+
+                this.elements.reducedMotionToggle.addEventListener('click', () => {
+                    document.body.classList.toggle('reduced-motion');
+                    this.elements.reducedMotionToggle.classList.toggle('active');
+                    const isActive = document.body.classList.contains('reduced-motion');
+                    this.announceToScreenReader(`Reduced motion ${isActive ? 'enabled' : 'disabled'}`);
+                    this.saveSettings();
+                });
+            }
+
+            initializeEventListeners() {
+                window.addEventListener('hashchange', () => {
+                    this.handleRouteChange();
+                });
+                
+                window.addEventListener('load', () => {
+                    this.handleRouteChange();
+                });
+                
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        this.goHome();
+                    }
+                });
+            }
+
+            handleRouteChange() {
+                const hash = window.location.hash.slice(1);
+                if (!hash) {
+                    this.goHome();
+                    return;
+                }
+                
+                const [moduleId, routeId] = hash.split('/');
+                if (this.modules.has(moduleId)) {
+                    this.loadModule(moduleId, routeId);
+                } else {
+                    this.goHome();
+                }
+            }
+
+            goHome() {
+                this.currentModule = null;
+                this.currentRoute = null;
+                this.elements.welcomeScreen.style.display = 'flex';
+                this.elements.moduleContainer.innerHTML = '';
+                this.renderModuleList();
+                window.location.hash = '';
+                this.announceToScreenReader('Returned to home screen');
+            }
+
+            updateURL() {
+                if (this.currentModule) {
+                    const hash = this.currentRoute 
+                        ? `${this.currentModule}/${this.currentRoute}`
+                        : this.currentModule;
+                    window.location.hash = hash;
+                }
+            }
+
+            saveSettings() {
+                const settings = {
+                    highContrast: document.body.classList.contains('high-contrast'),
+                    reducedMotion: document.body.classList.contains('reduced-motion'),
+                    currentModule: this.currentModule,
+                    currentRoute: this.currentRoute
+                };
+                localStorage.setItem('sparklab-settings', JSON.stringify(settings));
+            }
+
+            loadSettings() {
+                try {
+                    const settings = JSON.parse(localStorage.getItem('sparklab-settings') || '{}');
+                    
+                    if (settings.highContrast) {
+                        document.body.classList.add('high-contrast');
+                        this.elements.highContrastToggle.classList.add('active');
+                    }
+                    
+                    if (settings.reducedMotion) {
+                        document.body.classList.add('reduced-motion');
+                        this.elements.reducedMotionToggle.classList.add('active');
+                    }
+                } catch (error) {
+                    console.error('Error loading settings:', error);
+                }
+            }
+
+            runAllTests() {
+                const results = [];
+                for (const [id, module] of this.modules) {
+                    const tests = module.tests();
+                    for (const test of tests) {
+                        try {
+                            const passed = test.run();
+                            results.push({ module: id, test: test.name, passed });
+                        } catch (error) {
+                            results.push({ module: id, test: test.name, passed: false, error });
+                        }
+                    }
+                }
+                return results;
+            }
+        }
+
+        window.SparkLab = new SparkLab();
+
+        // Register modules after SparkLab is initialized
+        window.SparkLab.registerModule({
+            id: 'rdd-lineage',
+            title: 'RDD Lineage',
+            subtitle: 'Visualize transformation dependencies',
+            icon: '🔗',
+            routes: [
+                { id: 'playground', label: 'Interactive Playground' },
+                { id: 'challenges', label: 'Learning Challenges' },
+                { id: 'examples', label: 'Real-world Examples' }
+            ],
+            init(element, api) {
+                const rddLineageModule = new RDDLineageModule(element, api);
+                rddLineageModule.init();
+            },
+            tests() {
+                return [
+                    {
+                        name: 'Module renders without errors',
+                        run() {
+                            return document.getElementById('module-rdd-lineage') !== null;
+                        }
+                    },
+                    {
+                        name: 'DAG visualization container exists',
+                        run() {
+                            return document.querySelector('#rdd-dag-container') !== null;
+                        }
+                    },
+                    {
+                        name: 'Operations panel exists',
+                        run() {
+                            return document.querySelector('#rdd-operations-panel') !== null;
+                        }
+                    }
+                ];
+            },
+            about: {
+                learningOutcomes: [
+                    'Understand RDD transformation lineage and dependencies',
+                    'Visualize how operations create new RDDs',
+                    'Identify wide vs narrow transformations',
+                    'Recognize stage boundaries and shuffles',
+                    'Optimize transformation chains for performance'
+                ],
+                references: [
+                    'Apache Spark RDD Programming Guide',
+                    'Spark Performance Tuning',
+                    'Resilient Distributed Datasets Paper'
+                ]
+            }
+        });
+
+        class RDDLineageModule {
+            constructor(element, api) {
+                this.element = element;
+                this.api = api;
+                this.rddCounter = 0;
+                this.rdds = new Map();
+                this.history = [];
+                this.historyIndex = -1;
+                this.selectedRdd = null;
+                this.challenges = [];
+                this.currentChallenge = null;
+                
+                this.setupDataStructures();
+            }
+
+            setupDataStructures() {
+                this.operationTemplates = {
+                    'map': {
+                        name: 'map',
+                        type: 'narrow',
+                        description: 'Transform each element using a function',
+                        codeTemplate: 'rdd.map(x => x * 2)',
+                        inputPlaceholder: 'x => x * 2',
+                        complexity: 'O(n)'
+                    },
+                    'filter': {
+                        name: 'filter',
+                        type: 'narrow',
+                        description: 'Keep elements that satisfy a predicate',
+                        codeTemplate: 'rdd.filter(x => x > 0)',
+                        inputPlaceholder: 'x => x > 0',
+                        complexity: 'O(n)'
+                    },
+                    'flatMap': {
+                        name: 'flatMap',
+                        type: 'narrow',
+                        description: 'Transform and flatten elements',
+                        codeTemplate: 'rdd.flatMap(x => [x, x*2])',
+                        inputPlaceholder: 'x => [x, x*2]',
+                        complexity: 'O(n)'
+                    },
+                    'groupByKey': {
+                        name: 'groupByKey',
+                        type: 'wide',
+                        description: 'Group values by key (triggers shuffle)',
+                        codeTemplate: 'rdd.groupByKey()',
+                        inputPlaceholder: '',
+                        complexity: 'O(n log n)'
+                    },
+                    'reduceByKey': {
+                        name: 'reduceByKey',
+                        type: 'wide',
+                        description: 'Reduce values by key (more efficient than groupByKey)',
+                        codeTemplate: 'rdd.reduceByKey((a, b) => a + b)',
+                        inputPlaceholder: '(a, b) => a + b',
+                        complexity: 'O(n log n)'
+                    },
+                    'join': {
+                        name: 'join',
+                        type: 'wide',
+                        description: 'Inner join two RDDs by key',
+                        codeTemplate: 'rdd1.join(rdd2)',
+                        inputPlaceholder: '',
+                        complexity: 'O(n log n)',
+                        requiresSecondRdd: true
+                    },
+                    'union': {
+                        name: 'union',
+                        type: 'narrow',
+                        description: 'Combine two RDDs',
+                        codeTemplate: 'rdd1.union(rdd2)',
+                        inputPlaceholder: '',
+                        complexity: 'O(1)',
+                        requiresSecondRdd: true
+                    },
+                    'distinct': {
+                        name: 'distinct',
+                        type: 'wide',
+                        description: 'Remove duplicate elements',
+                        codeTemplate: 'rdd.distinct()',
+                        inputPlaceholder: '',
+                        complexity: 'O(n log n)'
+                    },
+                    'sortBy': {
+                        name: 'sortBy',
+                        type: 'wide',
+                        description: 'Sort elements by key function',
+                        codeTemplate: 'rdd.sortBy(x => x)',
+                        inputPlaceholder: 'x => x',
+                        complexity: 'O(n log n)'
+                    }
+                };
+
+                this.presets = {
+                    'simple-transform': {
+                        name: 'Simple Transformations',
+                        description: 'Basic map and filter operations',
+                        setup: () => this.createSimpleTransformPreset()
+                    },
+                    'key-value': {
+                        name: 'Key-Value Operations',
+                        description: 'GroupBy and reduce operations',
+                        setup: () => this.createKeyValuePreset()
+                    },
+                    'join-example': {
+                        name: 'Join Operations',
+                        description: 'Joining multiple datasets',
+                        setup: () => this.createJoinPreset()
+                    },
+                    'complex-pipeline': {
+                        name: 'Complex Pipeline',
+                        description: 'Multi-stage transformation chain',
+                        setup: () => this.createComplexPreset()
+                    }
+                };
+
+                this.sampleData = {
+                    'numbers': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                    'words': ['hello', 'world', 'spark', 'rdd', 'lineage'],
+                    'pairs': [['a', 1], ['b', 2], ['a', 3], ['c', 4], ['b', 5]],
+                    'employees': [['john', 'eng'], ['jane', 'data'], ['bob', 'eng'], ['alice', 'data']],
+                    'scores': [['alice', 95], ['bob', 87], ['charlie', 92], ['alice', 88]]
+                };
+            }
+
+            init() {
+                this.render();
+                this.setupEventListeners();
+                this.createInitialRDD();
+                this.setupChallenges();
+                this.api.announceToScreenReader('RDD Lineage Visualizer loaded');
+            }
+
+            render() {
+                this.element.innerHTML = `
+                    <div class="rdd-lineage-container">
+                        <div class="rdd-toolbar">
+                            <div class="toolbar-section">
+                                <h1>RDD Lineage Visualizer</h1>
+                                <div class="route-tabs">
+                                    <button class="route-tab ${this.api.getCurrentRoute() === 'playground' ? 'active' : ''}" 
+                                            data-route="playground">Playground</button>
+                                    <button class="route-tab ${this.api.getCurrentRoute() === 'challenges' ? 'active' : ''}" 
+                                            data-route="challenges">Challenges</button>
+                                    <button class="route-tab ${this.api.getCurrentRoute() === 'examples' ? 'active' : ''}" 
+                                            data-route="examples">Examples</button>
+                                </div>
+                            </div>
+                            <div class="toolbar-controls">
+                                <button id="rdd-reset" class="toolbar-btn" title="Reset to initial state">
+                                    <span>🔄</span> Reset
+                                </button>
+                                <button id="rdd-undo" class="toolbar-btn" title="Undo last operation">
+                                    <span>↶</span> Undo
+                                </button>
+                                <button id="rdd-redo" class="toolbar-btn" title="Redo operation">
+                                    <span>↷</span> Redo
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="rdd-workspace">
+                            <div class="rdd-left-panel">
+                                <div id="rdd-operations-panel" class="panel">
+                                    <h3>Operations</h3>
+                                    <div class="operation-categories">
+                                        <div class="operation-category">
+                                            <h4>Transformations</h4>
+                                            <div class="operation-grid" id="transformation-ops"></div>
+                                        </div>
+                                        <div class="operation-form" id="operation-form" style="display: none;">
+                                            <div class="form-header">
+                                                <h4 id="operation-title"></h4>
+                                                <span class="operation-type" id="operation-type"></span>
+                                            </div>
+                                            <div class="form-body">
+                                                <div class="input-group" id="operation-inputs"></div>
+                                                <div class="operation-info">
+                                                    <div class="complexity" id="operation-complexity"></div>
+                                                    <div class="description" id="operation-description"></div>
+                                                </div>
+                                                <div class="form-actions">
+                                                    <button id="apply-operation" class="primary-btn">Apply</button>
+                                                    <button id="cancel-operation" class="secondary-btn">Cancel</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="rdd-presets-panel" class="panel">
+                                    <h3>Quick Start</h3>
+                                    <div class="preset-grid" id="preset-grid"></div>
+                                </div>
+                            </div>
+
+                            <div class="rdd-center-panel">
+                                <div id="rdd-dag-container" class="dag-container">
+                                    <svg id="rdd-dag-svg" class="dag-svg" role="img" aria-label="RDD Lineage Graph">
+                                        <defs>
+                                            <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+                                                    refX="9" refY="3.5" orient="auto">
+                                                <polygon points="0 0, 10 3.5, 0 7" fill="var(--text-secondary)" />
+                                            </marker>
+                                            <filter id="drop-shadow" x="-20%" y="-20%" width="140%" height="140%">
+                                                <feDropShadow dx="2" dy="2" stdDeviation="2" flood-opacity="0.1"/>
+                                            </filter>
+                                        </defs>
+                                    </svg>
+                                </div>
+                                
+                                <div id="rdd-code-preview" class="code-preview">
+                                    <h4>Generated Code</h4>
+                                    <div class="code-content" id="code-content">
+                                        <pre><code>// Select an operation to see the code</code></pre>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="rdd-right-panel">
+                                <div id="rdd-inspector-panel" class="panel">
+                                    <h3>Inspector</h3>
+                                    <div id="inspector-content">
+                                        <div class="inspector-message">
+                                            Click on an RDD node to inspect its properties
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="rdd-challenge-panel" class="panel" style="display: none;">
+                                    <h3>Challenge</h3>
+                                    <div id="challenge-content"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <style>
+                        .rdd-lineage-container {
+                            height: 100%;
+                            display: flex;
+                            flex-direction: column;
+                            font-family: var(--font-sans);
+                        }
+
+                        .rdd-toolbar {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            padding: 1rem;
+                            background: var(--bg-secondary);
+                            border-bottom: 1px solid var(--border-default);
+                        }
+
+                        .rdd-toolbar h1 {
+                            font-size: 1.25rem;
+                            font-weight: 600;
+                            margin: 0 0 0.5rem 0;
+                            color: var(--text-primary);
+                        }
+
+                        .route-tabs {
+                            display: flex;
+                            gap: 0.5rem;
+                        }
+
+                        .route-tab {
+                            padding: 0.5rem 1rem;
+                            border: 1px solid var(--border-default);
+                            background: var(--bg-primary);
+                            color: var(--text-secondary);
+                            cursor: pointer;
+                            border-radius: 4px;
+                            font-size: 0.875rem;
+                            transition: all 0.2s ease;
+                        }
+
+                        .route-tab:hover {
+                            background: var(--bg-accent);
+                            color: var(--text-primary);
+                        }
+
+                        .route-tab.active {
+                            background: var(--accent-emphasis);
+                            color: white;
+                            border-color: var(--accent-emphasis);
+                        }
+
+                        .toolbar-controls {
+                            display: flex;
+                            gap: 0.5rem;
+                        }
+
+                        .toolbar-btn {
+                            padding: 0.5rem 0.75rem;
+                            border: 1px solid var(--border-default);
+                            background: var(--bg-primary);
+                            color: var(--text-secondary);
+                            cursor: pointer;
+                            border-radius: 4px;
+                            font-size: 0.875rem;
+                            display: flex;
+                            align-items: center;
+                            gap: 0.25rem;
+                            transition: all 0.2s ease;
+                        }
+
+                        .toolbar-btn:hover:not(:disabled) {
+                            background: var(--bg-accent);
+                            color: var(--text-primary);
+                            border-color: var(--accent-emphasis);
+                        }
+
+                        .toolbar-btn:disabled {
+                            opacity: 0.5;
+                            cursor: not-allowed;
+                        }
+
+                        .rdd-workspace {
+                            flex: 1;
+                            display: grid;
+                            grid-template-columns: 300px 1fr 280px;
+                            gap: 1px;
+                            background: var(--border-default);
+                            min-height: 0;
+                        }
+
+                        .rdd-left-panel, .rdd-center-panel, .rdd-right-panel {
+                            background: var(--bg-primary);
+                            overflow-y: auto;
+                        }
+
+                        .panel {
+                            padding: 1rem;
+                            margin-bottom: 1rem;
+                        }
+
+                        .panel h3 {
+                            font-size: 1rem;
+                            font-weight: 600;
+                            margin: 0 0 1rem 0;
+                            color: var(--text-primary);
+                            border-bottom: 1px solid var(--border-muted);
+                            padding-bottom: 0.5rem;
+                        }
+
+                        .operation-grid {
+                            display: grid;
+                            grid-template-columns: 1fr 1fr;
+                            gap: 0.5rem;
+                            margin-bottom: 1rem;
+                        }
+
+                        .operation-btn {
+                            padding: 0.75rem;
+                            border: 1px solid var(--border-default);
+                            background: var(--bg-secondary);
+                            color: var(--text-primary);
+                            cursor: pointer;
+                            border-radius: 6px;
+                            font-size: 0.875rem;
+                            text-align: center;
+                            transition: all 0.2s ease;
+                            position: relative;
+                        }
+
+                        .operation-btn:hover {
+                            background: var(--bg-accent);
+                            border-color: var(--accent-emphasis);
+                            transform: translateY(-1px);
+                        }
+
+                        .operation-btn.wide {
+                            border-left: 3px solid var(--attention-emphasis);
+                        }
+
+                        .operation-btn.narrow {
+                            border-left: 3px solid var(--success-emphasis);
+                        }
+
+                        .operation-form {
+                            background: var(--bg-secondary);
+                            border: 1px solid var(--border-default);
+                            border-radius: 6px;
+                            padding: 1rem;
+                        }
+
+                        .form-header {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            margin-bottom: 1rem;
+                        }
+
+                        .operation-type {
+                            padding: 0.25rem 0.5rem;
+                            border-radius: 4px;
+                            font-size: 0.75rem;
+                            font-weight: 500;
+                        }
+
+                        .operation-type.wide {
+                            background: var(--attention-emphasis);
+                            color: white;
+                        }
+
+                        .operation-type.narrow {
+                            background: var(--success-emphasis);
+                            color: white;
+                        }
+
+                        .input-group {
+                            margin-bottom: 1rem;
+                        }
+
+                        .input-group label {
+                            display: block;
+                            margin-bottom: 0.5rem;
+                            font-size: 0.875rem;
+                            font-weight: 500;
+                            color: var(--text-primary);
+                        }
+
+                        .input-group input, .input-group select {
+                            width: 100%;
+                            padding: 0.5rem;
+                            border: 1px solid var(--border-default);
+                            border-radius: 4px;
+                            background: var(--bg-primary);
+                            color: var(--text-primary);
+                            font-family: var(--font-mono);
+                            font-size: 0.875rem;
+                        }
+
+                        .input-group input:focus, .input-group select:focus {
+                            outline: none;
+                            border-color: var(--accent-emphasis);
+                            box-shadow: 0 0 0 2px var(--accent-subtle);
+                        }
+
+                        .operation-info {
+                            margin-bottom: 1rem;
+                            padding: 0.75rem;
+                            background: var(--bg-accent);
+                            border-radius: 4px;
+                        }
+
+                        .complexity {
+                            font-family: var(--font-mono);
+                            font-size: 0.75rem;
+                            color: var(--text-muted);
+                            margin-bottom: 0.25rem;
+                        }
+
+                        .description {
+                            font-size: 0.875rem;
+                            color: var(--text-secondary);
+                        }
+
+                        .form-actions {
+                            display: flex;
+                            gap: 0.5rem;
+                        }
+
+                        .primary-btn, .secondary-btn {
+                            flex: 1;
+                            padding: 0.75rem;
+                            border: 1px solid var(--border-default);
+                            border-radius: 4px;
+                            cursor: pointer;
+                            font-size: 0.875rem;
+                            transition: all 0.2s ease;
+                        }
+
+                        .primary-btn {
+                            background: var(--accent-emphasis);
+                            color: white;
+                            border-color: var(--accent-emphasis);
+                        }
+
+                        .primary-btn:hover {
+                            background: var(--accent-fg);
+                        }
+
+                        .secondary-btn {
+                            background: var(--bg-primary);
+                            color: var(--text-secondary);
+                        }
+
+                        .secondary-btn:hover {
+                            background: var(--bg-accent);
+                            color: var(--text-primary);
+                        }
+
+                        .preset-grid {
+                            display: flex;
+                            flex-direction: column;
+                            gap: 0.5rem;
+                        }
+
+                        .preset-btn {
+                            padding: 0.75rem;
+                            border: 1px solid var(--border-default);
+                            background: var(--bg-secondary);
+                            color: var(--text-primary);
+                            cursor: pointer;
+                            border-radius: 6px;
+                            text-align: left;
+                            transition: all 0.2s ease;
+                        }
+
+                        .preset-btn:hover {
+                            background: var(--bg-accent);
+                            border-color: var(--accent-emphasis);
+                        }
+
+                        .preset-name {
+                            font-weight: 500;
+                            margin-bottom: 0.25rem;
+                        }
+
+                        .preset-desc {
+                            font-size: 0.75rem;
+                            color: var(--text-muted);
+                        }
+
+                        .dag-container {
+                            flex: 1;
+                            position: relative;
+                            background: var(--bg-primary);
+                            border-radius: 6px;
+                            margin: 1rem;
+                            border: 1px solid var(--border-default);
+                            overflow: hidden;
+                        }
+
+                        .dag-svg {
+                            width: 100%;
+                            height: 100%;
+                            min-height: 500px;
+                        }
+
+                        .rdd-node {
+                            cursor: pointer;
+                            transition: all 0.2s ease;
+                        }
+
+                        .rdd-node:hover .rdd-rect {
+                            stroke: var(--accent-emphasis);
+                            stroke-width: 2;
+                        }
+
+                        .rdd-node.selected .rdd-rect {
+                            stroke: var(--accent-emphasis);
+                            stroke-width: 3;
+                            filter: url(#drop-shadow);
+                        }
+
+                        .rdd-rect {
+                            fill: var(--bg-secondary);
+                            stroke: var(--border-default);
+                            stroke-width: 3;
+                            rx: 8;
+                        }
+
+                        .rdd-text {
+                            fill: var(--text-primary);
+                            font-family: var(--font-sans);
+                            font-size: 16px;
+                            font-weight: 500;
+                            text-anchor: middle;
+                            dominant-baseline: middle;
+                        }
+
+                        .rdd-operation {
+                            fill: var(--text-secondary);
+                            font-family: var(--font-mono);
+                            font-size: 12px;
+                            text-anchor: middle;
+                        }
+
+                        .rdd-edge {
+                            stroke: var(--text-secondary);
+                            stroke-width: 2;
+                            fill: none;
+                            marker-end: url(#arrowhead);
+                        }
+
+                        .rdd-edge.wide {
+                            stroke: var(--attention-emphasis);
+                            stroke-width: 3;
+                            stroke-dasharray: 5,5;
+                        }
+
+                        .code-preview {
+                            margin: 1rem;
+                            background: var(--bg-secondary);
+                            border: 1px solid var(--border-default);
+                            border-radius: 6px;
+                            padding: 1rem;
+                        }
+
+                        .code-preview h4 {
+                            margin: 0 0 0.75rem 0;
+                            font-size: 0.875rem;
+                            font-weight: 600;
+                            color: var(--text-primary);
+                        }
+
+                        .code-content {
+                            background: var(--bg-accent);
+                            border-radius: 4px;
+                            padding: 0.75rem;
+                        }
+
+                        .code-content pre {
+                            margin: 0;
+                            font-family: var(--font-mono);
+                            font-size: 0.875rem;
+                            color: var(--text-primary);
+                            white-space: pre-wrap;
+                        }
+
+                        .inspector-content {
+                            font-size: 0.875rem;
+                        }
+
+                        .inspector-message {
+                            color: var(--text-muted);
+                            text-align: center;
+                            padding: 2rem 1rem;
+                        }
+
+                        .inspector-property {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            padding: 0.5rem 0;
+                            border-bottom: 1px solid var(--border-muted);
+                        }
+
+                        .inspector-property:last-child {
+                            border-bottom: none;
+                        }
+
+                        .property-label {
+                            font-weight: 500;
+                            color: var(--text-primary);
+                        }
+
+                        .property-value {
+                            color: var(--text-secondary);
+                            font-family: var(--font-mono);
+                        }
+
+                        .partition-grid {
+                            display: grid;
+                            grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+                            gap: 0.25rem;
+                            margin-top: 0.5rem;
+                        }
+
+                        .partition-cell {
+                            aspect-ratio: 1;
+                            background: var(--accent-subtle);
+                            border: 1px solid var(--accent-emphasis);
+                            border-radius: 2px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 0.75rem;
+                            color: var(--accent-fg);
+                        }
+
+                        @media (max-width: 1024px) {
+                            .rdd-workspace {
+                                grid-template-columns: 1fr;
+                                grid-template-rows: auto 1fr auto;
+                            }
+                            
+                            .rdd-left-panel, .rdd-right-panel {
+                                display: flex;
+                                overflow-x: auto;
+                            }
+                            
+                            .panel {
+                                min-width: 280px;
+                                margin-right: 1rem;
+                            }
+                        }
+                    </style>
+                `;
+            }
+
+            setupEventListeners() {
+                const resetBtn = document.getElementById('rdd-reset');
+                const undoBtn = document.getElementById('rdd-undo');
+                const redoBtn = document.getElementById('rdd-redo');
+
+                resetBtn.addEventListener('click', () => this.resetLineage());
+                undoBtn.addEventListener('click', () => this.undo());
+                redoBtn.addEventListener('click', () => this.redo());
+
+                document.querySelectorAll('.route-tab').forEach(tab => {
+                    tab.addEventListener('click', (e) => {
+                        const route = e.target.dataset.route;
+                        this.switchRoute(route);
+                    });
+                });
+
+                this.renderOperations();
+                this.renderPresets();
+                this.updateHistoryButtons();
+            }
+
+            createInitialRDD() {
+                const initialRdd = {
+                    id: 'rdd_0',
+                    name: 'Initial Data',
+                    operation: 'parallelize',
+                    operationType: 'action',
+                    data: this.sampleData.numbers,
+                    partitions: 4,
+                    dependencies: [],
+                    cached: false,
+                    x: 280,
+                    y: 160
+                };
+
+                this.rddCounter = 1;
+                this.rdds.set('rdd_0', initialRdd);
+                this.saveToHistory();
+                this.renderDAG();
+                this.generateCode();
+                this.selectRdd('rdd_0');
+            }
+
+            renderOperations() {
+                const container = document.getElementById('transformation-ops');
+                container.innerHTML = '';
+
+                Object.entries(this.operationTemplates).forEach(([key, op]) => {
+                    const btn = document.createElement('button');
+                    btn.className = `operation-btn ${op.type}`;
+                    btn.textContent = op.name;
+                    btn.title = op.description;
+                    btn.addEventListener('click', () => this.showOperationForm(key));
+                    container.appendChild(btn);
+                });
+            }
+
+            renderPresets() {
+                const container = document.getElementById('preset-grid');
+                container.innerHTML = '';
+
+                Object.entries(this.presets).forEach(([key, preset]) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'preset-btn';
+                    btn.innerHTML = `
+                        <div class="preset-name">${preset.name}</div>
+                        <div class="preset-desc">${preset.description}</div>
+                    `;
+                    btn.addEventListener('click', () => preset.setup());
+                    container.appendChild(btn);
+                });
+            }
+
+            showOperationForm(operationKey) {
+                const operation = this.operationTemplates[operationKey];
+                if (!operation) return;
+
+                const form = document.getElementById('operation-form');
+                const title = document.getElementById('operation-title');
+                const type = document.getElementById('operation-type');
+                const inputs = document.getElementById('operation-inputs');
+                const complexity = document.getElementById('operation-complexity');
+                const description = document.getElementById('operation-description');
+
+                title.textContent = operation.name;
+                type.textContent = operation.type;
+                type.className = `operation-type ${operation.type}`;
+                complexity.textContent = `Complexity: ${operation.complexity}`;
+                description.textContent = operation.description;
+
+                inputs.innerHTML = '';
+
+                if (operation.requiresSecondRdd) {
+                    const rddSelect = document.createElement('div');
+                    rddSelect.className = 'input-group';
+                    rddSelect.innerHTML = `
+                        <label for="second-rdd">Select second RDD:</label>
+                        <select id="second-rdd">
+                            ${Array.from(this.rdds.values()).map(rdd => 
+                                `<option value="${rdd.id}">${rdd.name} (${rdd.id})</option>`
+                            ).join('')}
+                        </select>
+                    `;
+                    inputs.appendChild(rddSelect);
+                }
+
+                if (operation.inputPlaceholder) {
+                    const functionInput = document.createElement('div');
+                    functionInput.className = 'input-group';
+                    functionInput.innerHTML = `
+                        <label for="operation-function">Function:</label>
+                        <input type="text" id="operation-function" 
+                               placeholder="${operation.inputPlaceholder}" 
+                               value="${operation.inputPlaceholder}">
+                    `;
+                    inputs.appendChild(functionInput);
+                }
+
+                const sourceRddSelect = document.createElement('div');
+                sourceRddSelect.className = 'input-group';
+                sourceRddSelect.innerHTML = `
+                    <label for="source-rdd">Source RDD:</label>
+                    <select id="source-rdd">
+                        ${Array.from(this.rdds.values()).map(rdd => 
+                            `<option value="${rdd.id}" ${rdd.id === this.selectedRdd ? 'selected' : ''}>
+                                ${rdd.name} (${rdd.id})
+                            </option>`
+                        ).join('')}
+                    </select>
+                `;
+                inputs.appendChild(sourceRddSelect);
+
+                form.style.display = 'block';
+
+                document.getElementById('apply-operation').onclick = () => {
+                    this.applyOperation(operationKey);
+                };
+
+                document.getElementById('cancel-operation').onclick = () => {
+                    form.style.display = 'none';
+                };
+            }
+
+            applyOperation(operationKey) {
+                const operation = this.operationTemplates[operationKey];
+                const sourceRddId = document.getElementById('source-rdd').value;
+                const sourceRdd = this.rdds.get(sourceRddId);
+
+                if (!sourceRdd) return;
+
+                const newRddId = `rdd_${this.rddCounter++}`;
+                const newRdd = {
+                    id: newRddId,
+                    name: `${operation.name}()`,
+                    operation: operation.name,
+                    operationType: 'transformation',
+                    dependencies: [sourceRddId],
+                    partitions: operation.type === 'wide' ? Math.max(4, sourceRdd.partitions) : sourceRdd.partitions,
+                    cached: false,
+                    transformationType: operation.type,
+                    x: sourceRdd.x + 300,
+                    y: sourceRdd.y + (Math.random() - 0.5) * 120
+                };
+
+                if (operation.requiresSecondRdd) {
+                    const secondRddId = document.getElementById('second-rdd').value;
+                    if (secondRddId && secondRddId !== sourceRddId) {
+                        newRdd.dependencies.push(secondRddId);
+                        const secondRdd = this.rdds.get(secondRddId);
+                        newRdd.y = Math.max(sourceRdd.y, secondRdd.y) + 80;
+                    }
+                }
+
+                if (operation.inputPlaceholder) {
+                    const functionInput = document.getElementById('operation-function').value;
+                    newRdd.function = functionInput;
+                    newRdd.name = `${operation.name}(${functionInput})`;
+                }
+
+                this.rdds.set(newRddId, newRdd);
+                this.selectedRdd = newRddId;
+                
+                this.saveToHistory();
+                this.renderDAG();
+                this.generateCode();
+                this.updateInspector(newRddId);
+                
+                document.getElementById('operation-form').style.display = 'none';
+                this.api.announceToScreenReader(`Applied ${operation.name} operation`);
+            }
+
+            renderDAG() {
+                const svg = document.getElementById('rdd-dag-svg');
+                const container = svg.parentElement;
+                const containerRect = container.getBoundingClientRect();
+                
+                console.log('Container dimensions:', containerRect.width, 'x', containerRect.height);
+                
+                // Set a much smaller viewBox to make nodes appear larger
+                svg.setAttribute('viewBox', '200 100 400 200');
+                svg.setAttribute('width', '100%');
+                svg.setAttribute('height', '100%');
+                
+                console.log('SVG viewBox set to: 200 100 400 200');
+                
+                svg.innerHTML = svg.querySelector('defs').outerHTML;
+
+                const rdds = Array.from(this.rdds.values());
+                
+                rdds.forEach(rdd => {
+                    rdd.dependencies.forEach(depId => {
+                        const depRdd = this.rdds.get(depId);
+                        if (depRdd) {
+                            this.renderEdge(svg, depRdd, rdd);
+                        }
+                    });
+                });
+
+                rdds.forEach(rdd => {
+                    this.renderRddNode(svg, rdd);
+                });
+            }
+
+            renderEdge(svg, fromRdd, toRdd) {
+                const fromX = fromRdd.x + 150;
+                const fromY = fromRdd.y + 50;
+                const toX = toRdd.x;
+                const toY = toRdd.y + 50;
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const midX = (fromX + toX) / 2;
+                const d = `M ${fromX} ${fromY} C ${midX} ${fromY}, ${midX} ${toY}, ${toX} ${toY}`;
+                
+                path.setAttribute('d', d);
+                path.setAttribute('class', `rdd-edge ${toRdd.transformationType === 'wide' ? 'wide' : ''}`);
+                path.setAttribute('aria-label', `Edge from ${fromRdd.name} to ${toRdd.name}`);
+                
+                svg.appendChild(path);
+            }
+
+            renderRddNode(svg, rdd) {
+                const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                group.setAttribute('class', 'rdd-node');
+                group.setAttribute('data-rdd-id', rdd.id);
+                group.setAttribute('role', 'button');
+                group.setAttribute('aria-label', `RDD ${rdd.name}, click to inspect`);
+                group.setAttribute('tabindex', '0');
+
+                if (rdd.id === this.selectedRdd) {
+                    group.classList.add('selected');
+                }
+
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('class', 'rdd-rect');
+                rect.setAttribute('x', rdd.x);
+                rect.setAttribute('y', rdd.y);
+                rect.setAttribute('width', 300);
+                rect.setAttribute('height', 100);
+                
+                console.log(`Rendering RDD ${rdd.id} at (${rdd.x}, ${rdd.y}) with size 300x100`);
+
+                const nameText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                nameText.setAttribute('class', 'rdd-text');
+                nameText.setAttribute('x', rdd.x + 150);
+                nameText.setAttribute('y', rdd.y + 40);
+                nameText.textContent = rdd.name.length > 24 ? rdd.name.substring(0, 21) + '...' : rdd.name;
+
+                const idText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                idText.setAttribute('class', 'rdd-operation');
+                idText.setAttribute('x', rdd.x + 150);
+                idText.setAttribute('y', rdd.y + 70);
+                idText.textContent = `${rdd.id} • ${rdd.partitions}p`;
+
+                group.appendChild(rect);
+                group.appendChild(nameText);
+                group.appendChild(idText);
+
+                group.addEventListener('click', () => {
+                    this.selectRdd(rdd.id);
+                });
+
+                group.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        this.selectRdd(rdd.id);
+                    }
+                });
+
+                svg.appendChild(group);
+            }
+
+            selectRdd(rddId) {
+                this.selectedRdd = rddId;
+                this.renderDAG();
+                this.updateInspector(rddId);
+                this.api.announceToScreenReader(`Selected RDD ${rddId}`);
+            }
+
+            updateInspector(rddId) {
+                const rdd = this.rdds.get(rddId);
+                const content = document.getElementById('inspector-content');
+
+                if (!rdd) {
+                    content.innerHTML = '<div class="inspector-message">RDD not found</div>';
+                    return;
+                }
+
+                content.innerHTML = `
+                    <div class="inspector-property">
+                        <span class="property-label">ID</span>
+                        <span class="property-value">${rdd.id}</span>
+                    </div>
+                    <div class="inspector-property">
+                        <span class="property-label">Name</span>
+                        <span class="property-value">${rdd.name}</span>
+                    </div>
+                    <div class="inspector-property">
+                        <span class="property-label">Operation</span>
+                        <span class="property-value">${rdd.operation}</span>
+                    </div>
+                    <div class="inspector-property">
+                        <span class="property-label">Type</span>
+                        <span class="property-value">${rdd.operationType}</span>
+                    </div>
+                    <div class="inspector-property">
+                        <span class="property-label">Partitions</span>
+                        <span class="property-value">${rdd.partitions}</span>
+                    </div>
+                    <div class="inspector-property">
+                        <span class="property-label">Dependencies</span>
+                        <span class="property-value">${rdd.dependencies.length}</span>
+                    </div>
+                    ${rdd.transformationType ? `
+                        <div class="inspector-property">
+                            <span class="property-label">Transformation</span>
+                            <span class="property-value">${rdd.transformationType}</span>
+                        </div>
+                    ` : ''}
+                    ${rdd.function ? `
+                        <div class="inspector-property">
+                            <span class="property-label">Function</span>
+                            <span class="property-value">${rdd.function}</span>
+                        </div>
+                    ` : ''}
+                    <div class="inspector-property">
+                        <span class="property-label">Cached</span>
+                        <span class="property-value">${rdd.cached ? 'Yes' : 'No'}</span>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <div class="property-label">Partition Layout</div>
+                        <div class="partition-grid">
+                            ${Array.from({length: rdd.partitions}, (_, i) => 
+                                `<div class="partition-cell">${i}</div>`
+                            ).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            generateCode() {
+                const content = document.getElementById('code-content');
+                let code = '// RDD Lineage Code\n\n';
+                
+                const rdds = Array.from(this.rdds.values());
+                const visited = new Set();
+                
+                const generateCodeForRdd = (rdd) => {
+                    if (visited.has(rdd.id)) return '';
+                    visited.add(rdd.id);
+                    
+                    let rddCode = '';
+                    
+                    rdd.dependencies.forEach(depId => {
+                        const depRdd = this.rdds.get(depId);
+                        if (depRdd) {
+                            rddCode += generateCodeForRdd(depRdd);
+                        }
+                    });
+                    
+                    if (rdd.operation === 'parallelize') {
+                        rddCode += `val ${rdd.id} = sc.parallelize(Array(${rdd.data ? rdd.data.slice(0, 5).join(', ') + '...' : 'data'}))\n`;
+                    } else if (rdd.dependencies.length === 1) {
+                        const sourceRdd = this.rdds.get(rdd.dependencies[0]);
+                        const func = rdd.function || '';
+                        rddCode += `val ${rdd.id} = ${sourceRdd.id}.${rdd.operation}(${func})\n`;
+                    } else if (rdd.dependencies.length === 2) {
+                        const sourceRdd1 = this.rdds.get(rdd.dependencies[0]);
+                        const sourceRdd2 = this.rdds.get(rdd.dependencies[1]);
+                        rddCode += `val ${rdd.id} = ${sourceRdd1.id}.${rdd.operation}(${sourceRdd2.id})\n`;
+                    }
+                    
+                    return rddCode;
+                };
+                
+                rdds.forEach(rdd => {
+                    code += generateCodeForRdd(rdd);
+                });
+                
+                content.innerHTML = `<pre><code>${code}</code></pre>`;
+            }
+
+            saveToHistory() {
+                const state = {
+                    rdds: new Map(this.rdds),
+                    rddCounter: this.rddCounter,
+                    selectedRdd: this.selectedRdd
+                };
+                
+                this.history = this.history.slice(0, this.historyIndex + 1);
+                this.history.push(state);
+                this.historyIndex = this.history.length - 1;
+                this.updateHistoryButtons();
+            }
+
+            undo() {
+                if (this.historyIndex > 0) {
+                    this.historyIndex--;
+                    this.restoreFromHistory();
+                    this.api.announceToScreenReader('Undid last operation');
+                }
+            }
+
+            redo() {
+                if (this.historyIndex < this.history.length - 1) {
+                    this.historyIndex++;
+                    this.restoreFromHistory();
+                    this.api.announceToScreenReader('Redid operation');
+                }
+            }
+
+            restoreFromHistory() {
+                if (this.historyIndex >= 0 && this.historyIndex < this.history.length) {
+                    const state = this.history[this.historyIndex];
+                    this.rdds = new Map(state.rdds);
+                    this.rddCounter = state.rddCounter;
+                    this.selectedRdd = state.selectedRdd;
+                    
+                    this.renderDAG();
+                    this.generateCode();
+                    if (this.selectedRdd) {
+                        this.updateInspector(this.selectedRdd);
+                    }
+                    this.updateHistoryButtons();
+                }
+            }
+
+            updateHistoryButtons() {
+                const undoBtn = document.getElementById('rdd-undo');
+                const redoBtn = document.getElementById('rdd-redo');
+                
+                undoBtn.disabled = this.historyIndex <= 0;
+                redoBtn.disabled = this.historyIndex >= this.history.length - 1;
+            }
+
+            resetLineage() {
+                this.rdds.clear();
+                this.rddCounter = 0;
+                this.selectedRdd = null;
+                this.history = [];
+                this.historyIndex = -1;
+                
+                this.createInitialRDD();
+                this.api.announceToScreenReader('Reset lineage to initial state');
+            }
+
+            switchRoute(route) {
+                document.querySelectorAll('.route-tab').forEach(tab => {
+                    tab.classList.toggle('active', tab.dataset.route === route);
+                });
+                
+                const challengePanel = document.getElementById('rdd-challenge-panel');
+                
+                if (route === 'challenges') {
+                    challengePanel.style.display = 'block';
+                    this.showChallenges();
+                } else {
+                    challengePanel.style.display = 'none';
+                }
+                
+                this.api.navigateToRoute(route);
+            }
+
+            setupChallenges() {
+                this.challenges = [
+                    {
+                        id: 'basic-transform',
+                        title: 'Basic Transformations',
+                        description: 'Apply a map operation to double all numbers, then filter to keep only even numbers.',
+                        startState: () => this.createSimpleTransformPreset(),
+                        checkSolution: () => {
+                            const rdds = Array.from(this.rdds.values());
+                            const hasMap = rdds.some(rdd => rdd.operation === 'map');
+                            const hasFilter = rdds.some(rdd => rdd.operation === 'filter');
+                            return hasMap && hasFilter && rdds.length >= 3;
+                        },
+                        hint: 'Use the map operation first, then apply filter to the result.'
+                    },
+                    {
+                        id: 'wide-vs-narrow',
+                        title: 'Wide vs Narrow',
+                        description: 'Create a lineage that includes both narrow and wide transformations. Identify which operations cause shuffles.',
+                        startState: () => this.createKeyValuePreset(),
+                        checkSolution: () => {
+                            const rdds = Array.from(this.rdds.values());
+                            const hasNarrow = rdds.some(rdd => rdd.transformationType === 'narrow');
+                            const hasWide = rdds.some(rdd => rdd.transformationType === 'wide');
+                            return hasNarrow && hasWide;
+                        },
+                        hint: 'Map and filter are narrow. GroupByKey and join are wide transformations.'
+                    },
+                    {
+                        id: 'optimization',
+                        title: 'Optimization Challenge',
+                        description: 'Replace a groupByKey operation with reduceByKey for better performance.',
+                        startState: () => {
+                            this.resetLineage();
+                            this.createKeyValuePreset();
+                        },
+                        checkSolution: () => {
+                            const rdds = Array.from(this.rdds.values());
+                            const hasReduceByKey = rdds.some(rdd => rdd.operation === 'reduceByKey');
+                            const hasNoGroupByKey = !rdds.some(rdd => rdd.operation === 'groupByKey');
+                            return hasReduceByKey && hasNoGroupByKey;
+                        },
+                        hint: 'ReduceByKey is more efficient than groupByKey for aggregations.'
+                    }
+                ];
+            }
+
+            showChallenges() {
+                const content = document.getElementById('challenge-content');
+                
+                if (!this.currentChallenge) {
+                    content.innerHTML = `
+                        <div class="challenge-list">
+                            <h4>Learning Challenges</h4>
+                            <p>Test your understanding of RDD lineage concepts:</p>
+                            ${this.challenges.map(challenge => `
+                                <button class="challenge-btn" onclick="rddLineageModule.startChallenge('${challenge.id}')">
+                                    <div class="challenge-title">${challenge.title}</div>
+                                    <div class="challenge-desc">${challenge.description}</div>
+                                </button>
+                            `).join('')}
+                        </div>
+                        <style>
+                            .challenge-list { margin-top: 1rem; }
+                            .challenge-btn {
+                                width: 100%;
+                                padding: 1rem;
+                                margin-bottom: 0.5rem;
+                                border: 1px solid var(--border-default);
+                                background: var(--bg-secondary);
+                                color: var(--text-primary);
+                                cursor: pointer;
+                                border-radius: 6px;
+                                text-align: left;
+                                transition: all 0.2s ease;
+                            }
+                            .challenge-btn:hover {
+                                background: var(--bg-accent);
+                                border-color: var(--accent-emphasis);
+                            }
+                            .challenge-title {
+                                font-weight: 500;
+                                margin-bottom: 0.25rem;
+                            }
+                            .challenge-desc {
+                                font-size: 0.875rem;
+                                color: var(--text-secondary);
+                            }
+                        </style>
+                    `;
+                } else {
+                    this.renderCurrentChallenge();
+                }
+            }
+
+            startChallenge(challengeId) {
+                this.currentChallenge = this.challenges.find(c => c.id === challengeId);
+                if (this.currentChallenge) {
+                    this.currentChallenge.startState();
+                    this.renderCurrentChallenge();
+                    this.api.announceToScreenReader(`Started challenge: ${this.currentChallenge.title}`);
+                }
+            }
+
+            renderCurrentChallenge() {
+                const content = document.getElementById('challenge-content');
+                const isComplete = this.currentChallenge.checkSolution();
+                
+                content.innerHTML = `
+                    <div class="challenge-active">
+                        <h4>${this.currentChallenge.title}</h4>
+                        <p class="challenge-description">${this.currentChallenge.description}</p>
+                        
+                        <div class="challenge-status ${isComplete ? 'complete' : 'incomplete'}">
+                            <div class="status-indicator">
+                                ${isComplete ? '✅' : '⏳'}
+                                ${isComplete ? 'Complete!' : 'In Progress'}
+                            </div>
+                        </div>
+                        
+                        ${!isComplete ? `
+                            <div class="challenge-hint">
+                                <strong>Hint:</strong> ${this.currentChallenge.hint}
+                            </div>
+                        ` : ''}
+                        
+                        <div class="challenge-actions">
+                            <button onclick="rddLineageModule.checkChallenge()" class="check-btn">
+                                Check Solution
+                            </button>
+                            <button onclick="rddLineageModule.exitChallenge()" class="exit-btn">
+                                Exit Challenge
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <style>
+                        .challenge-active { margin-top: 1rem; }
+                        .challenge-description {
+                            margin: 1rem 0;
+                            padding: 1rem;
+                            background: var(--bg-accent);
+                            border-radius: 4px;
+                            font-size: 0.875rem;
+                        }
+                        .challenge-status {
+                            padding: 0.75rem;
+                            border-radius: 4px;
+                            margin: 1rem 0;
+                        }
+                        .challenge-status.complete {
+                            background: var(--success-emphasis);
+                            color: white;
+                        }
+                        .challenge-status.incomplete {
+                            background: var(--attention-emphasis);
+                            color: white;
+                        }
+                        .challenge-hint {
+                            padding: 0.75rem;
+                            background: var(--accent-subtle);
+                            border-radius: 4px;
+                            margin: 1rem 0;
+                            font-size: 0.875rem;
+                            border-left: 3px solid var(--accent-emphasis);
+                        }
+                        .challenge-actions {
+                            display: flex;
+                            gap: 0.5rem;
+                            margin-top: 1rem;
+                        }
+                        .check-btn, .exit-btn {
+                            flex: 1;
+                            padding: 0.75rem;
+                            border: 1px solid var(--border-default);
+                            border-radius: 4px;
+                            cursor: pointer;
+                            font-size: 0.875rem;
+                            transition: all 0.2s ease;
+                        }
+                        .check-btn {
+                            background: var(--accent-emphasis);
+                            color: white;
+                            border-color: var(--accent-emphasis);
+                        }
+                        .check-btn:hover {
+                            background: var(--accent-fg);
+                        }
+                        .exit-btn {
+                            background: var(--bg-primary);
+                            color: var(--text-secondary);
+                        }
+                        .exit-btn:hover {
+                            background: var(--bg-accent);
+                            color: var(--text-primary);
+                        }
+                    </style>
+                `;
+            }
+
+            checkChallenge() {
+                if (this.currentChallenge) {
+                    const isComplete = this.currentChallenge.checkSolution();
+                    this.renderCurrentChallenge();
+                    
+                    if (isComplete) {
+                        this.api.announceToScreenReader('Challenge completed successfully!');
+                    } else {
+                        this.api.announceToScreenReader('Challenge not yet complete. Keep working!');
+                    }
+                }
+            }
+
+            exitChallenge() {
+                this.currentChallenge = null;
+                this.showChallenges();
+                this.api.announceToScreenReader('Exited challenge mode');
+            }
+
+            createSimpleTransformPreset() {
+                this.resetLineage();
+            }
+
+            createKeyValuePreset() {
+                this.resetLineage();
+                
+                const pairsRdd = {
+                    id: 'rdd_1',
+                    name: 'Key-Value Pairs',
+                    operation: 'parallelize',
+                    operationType: 'action',
+                    data: this.sampleData.pairs,
+                    partitions: 4,
+                    dependencies: [],
+                    cached: false,
+                    x: 50,
+                    y: 150
+                };
+                
+                this.rddCounter = 2;
+                this.rdds.set('rdd_0', pairsRdd);
+                this.rdds.delete('rdd_0');
+                this.rdds.set('rdd_1', pairsRdd);
+                this.saveToHistory();
+                this.renderDAG();
+                this.generateCode();
+            }
+
+            createJoinPreset() {
+                this.resetLineage();
+                
+                const employees = {
+                    id: 'rdd_1',
+                    name: 'Employees',
+                    operation: 'parallelize',
+                    operationType: 'action',
+                    data: this.sampleData.employees,
+                    partitions: 2,
+                    dependencies: [],
+                    cached: false,
+                    x: 50,
+                    y: 100
+                };
+                
+                const scores = {
+                    id: 'rdd_2',
+                    name: 'Scores',
+                    operation: 'parallelize',
+                    operationType: 'action',
+                    data: this.sampleData.scores,
+                    partitions: 2,
+                    dependencies: [],
+                    cached: false,
+                    x: 50,
+                    y: 250
+                };
+                
+                this.rddCounter = 3;
+                this.rdds.clear();
+                this.rdds.set('rdd_1', employees);
+                this.rdds.set('rdd_2', scores);
+                this.saveToHistory();
+                this.renderDAG();
+                this.generateCode();
+            }
+
+            createComplexPreset() {
+                this.resetLineage();
+                
+                const data = {
+                    id: 'rdd_1',
+                    name: 'Raw Data',
+                    operation: 'textFile',
+                    operationType: 'action',
+                    data: ['line1', 'line2', 'line3'],
+                    partitions: 8,
+                    dependencies: [],
+                    cached: false,
+                    x: 50,
+                    y: 150
+                };
+                
+                const words = {
+                    id: 'rdd_2',
+                    name: 'flatMap(_.split)',
+                    operation: 'flatMap',
+                    operationType: 'transformation',
+                    transformationType: 'narrow',
+                    function: '_.split(" ")',
+                    dependencies: ['rdd_1'],
+                    partitions: 8,
+                    cached: false,
+                    x: 350,
+                    y: 150
+                };
+                
+                const wordCounts = {
+                    id: 'rdd_3',
+                    name: 'map((_, 1))',
+                    operation: 'map',
+                    operationType: 'transformation',
+                    transformationType: 'narrow',
+                    function: 'word => (word, 1)',
+                    dependencies: ['rdd_2'],
+                    partitions: 8,
+                    cached: false,
+                    x: 650,
+                    y: 150
+                };
+                
+                const reduced = {
+                    id: 'rdd_4',
+                    name: 'reduceByKey(+)',
+                    operation: 'reduceByKey',
+                    operationType: 'transformation',
+                    transformationType: 'wide',
+                    function: '_ + _',
+                    dependencies: ['rdd_3'],
+                    partitions: 4,
+                    cached: true,
+                    x: 950,
+                    y: 150
+                };
+                
+                this.rddCounter = 5;
+                this.rdds.clear();
+                this.rdds.set('rdd_1', data);
+                this.rdds.set('rdd_2', words);
+                this.rdds.set('rdd_3', wordCounts);
+                this.rdds.set('rdd_4', reduced);
+                this.saveToHistory();
+                this.renderDAG();
+                this.generateCode();
+            }
+        }
+
+        window.rddLineageModule = null;
+
+        window.SparkLab.registerModule({
+            id: 'rdd-lineage',
+            title: 'RDD Lineage',
+            subtitle: 'Visualize transformation dependencies',
+            icon: '🔗',
+            routes: [
+                { id: 'playground', label: 'Interactive Playground' },
+                { id: 'challenges', label: 'Learning Challenges' },
+                { id: 'examples', label: 'Real-world Examples' }
+            ],
+            init(element, api) {
+                const module = new RDDLineageModule(element, api);
+                window.rddLineageModule = module;
+                module.init();
+            },
+            tests() {
+                return [
+                    {
+                        name: 'Module renders without errors',
+                        run() {
+                            return document.getElementById('module-rdd-lineage') !== null;
+                        }
+                    },
+                    {
+                        name: 'DAG visualization container exists',
+                        run() {
+                            return document.querySelector('#rdd-dag-container') !== null;
+                        }
+                    },
+                    {
+                        name: 'Operations panel exists',
+                        run() {
+                            return document.querySelector('#rdd-operations-panel') !== null;
+                        }
+                    },
+                    {
+                        name: 'Initial RDD is created',
+                        run() {
+                            return window.rddLineageModule && window.rddLineageModule.rdds.size > 0;
+                        }
+                    }
+                ];
+            },
+            about: {
+                learningOutcomes: [
+                    'Understand RDD transformation lineage and dependencies',
+                    'Visualize how operations create new RDDs',
+                    'Identify wide vs narrow transformations',
+                    'Recognize stage boundaries and shuffles',
+                    'Optimize transformation chains for performance'
+                ],
+                references: [
+                    'Apache Spark RDD Programming Guide',
+                    'Spark Performance Tuning',
+                    'Resilient Distributed Datasets Paper'
+                ]
+            }
+        });
+
+        window.SparkLab.registerModule({
+            id: 'shuffle-simulator',
+            title: 'Shuffle Operations',
+            subtitle: 'Explore data movement patterns',
+            icon: '🔄',
+            routes: [
+                { id: 'hash-shuffle', label: 'Hash Shuffle' },
+                { id: 'sort-shuffle', label: 'Sort Shuffle' },
+                { id: 'optimization', label: 'Optimization' }
+            ],
+            init(element, api) {
+                element.innerHTML = `
+                    <div style="padding: 2rem;">
+                        <h1>Shuffle Operations Simulator</h1>
+                        <p>This is a placeholder for the Shuffle Operations module.</p>
+                        <p>Current route: ${api.getCurrentRoute()}</p>
+                        <div style="margin-top: 1rem; padding: 1rem; background: var(--bg-accent); border-radius: 6px;">
+                            <h3>Simulation Features</h3>
+                            <ul>
+                                <li>Data partitioning visualization</li>
+                                <li>Network traffic simulation</li>
+                                <li>Shuffle read/write metrics</li>
+                                <li>Performance comparison tools</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            },
+            tests() {
+                return [
+                    {
+                        name: 'Module renders without errors',
+                        run() {
+                            return document.getElementById('module-shuffle-simulator') !== null;
+                        }
+                    }
+                ];
+            },
+            about: {
+                learningOutcomes: [
+                    'Understand shuffle mechanics',
+                    'Compare shuffle strategies',
+                    'Optimize shuffle performance'
+                ],
+                references: [
+                    'Spark Shuffle Internals',
+                    'Tungsten Shuffle Service'
+                ]
+            }
+        });
+    </script>
+</body>
+</html>
