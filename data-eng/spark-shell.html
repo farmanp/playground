@@ -2399,6 +2399,1175 @@
 
         window.rddLineageModule = null;
 
+        class DataPartitioningModule {
+            constructor(element, api) {
+                this.element = element;
+                this.api = api;
+                this.partitionCount = 4;
+                this.currentStrategy = 'hash';
+                this.dataItems = [];
+                this.partitions = [];
+                this.animationSpeed = 1000;
+                this.isAnimating = false;
+                this.selectedPartition = null;
+                this.dataSkew = 0;
+                this.currentChallenge = null;
+                
+                this.setupDataStructures();
+            }
+
+            setupDataStructures() {
+                this.partitioningStrategies = {
+                    'hash': {
+                        name: 'Hash Partitioning',
+                        description: 'Distributes data using consistent hashing for even distribution',
+                        color: '#0969da',
+                        partition: (item) => this.hashPartition(item)
+                    },
+                    'range': {
+                        name: 'Range Partitioning', 
+                        description: 'Distributes data based on value ranges for sorted access',
+                        color: '#1a7f37',
+                        partition: (item) => this.rangePartition(item)
+                    },
+                    'custom': {
+                        name: 'Custom Partitioning',
+                        description: 'User-defined partitioning logic for specific use cases',
+                        color: '#9a6700',
+                        partition: (item) => this.customPartition(item)
+                    }
+                };
+
+                this.sampleDatasets = {
+                    'user-ids': {
+                        name: 'User IDs',
+                        data: Array.from({length: 100}, (_, i) => ({
+                            id: `user_${i}`,
+                            value: i,
+                            type: 'user'
+                        }))
+                    },
+                    'timestamps': {
+                        name: 'Timestamps',
+                        data: Array.from({length: 100}, (_, i) => ({
+                            id: `event_${i}`,
+                            value: Date.now() + (i * 60000),
+                            type: 'timestamp'
+                        }))
+                    },
+                    'skewed-data': {
+                        name: 'Skewed Distribution',
+                        data: this.generateSkewedData(100)
+                    }
+                };
+
+                this.challenges = [
+                    {
+                        id: 'load-balancer',
+                        title: 'Load Balancer',
+                        description: 'Distribute skewed data evenly across partitions',
+                        dataset: 'skewed-data',
+                        goal: 'Achieve <20% variance in partition sizes',
+                        validator: () => this.validateLoadBalance(),
+                        hint: 'Try different partitioning strategies to minimize skew'
+                    },
+                    {
+                        id: 'hash-master',
+                        title: 'Hash Master', 
+                        description: 'Predict which partition specific keys will land in',
+                        dataset: 'user-ids',
+                        goal: 'Correctly predict 8/10 partition assignments',
+                        validator: () => this.validateHashPrediction(),
+                        hint: 'Hash functions provide consistent, deterministic assignment'
+                    },
+                    {
+                        id: 'range-designer',
+                        title: 'Range Designer',
+                        description: 'Create optimal range boundaries for time-series data',
+                        dataset: 'timestamps',
+                        goal: 'Design ranges that enable efficient time-based queries',
+                        validator: () => this.validateRangeDesign(),
+                        hint: 'Consider query patterns when designing range boundaries'
+                    }
+                ];
+            }
+
+            init() {
+                this.render();
+                this.setupEventListeners();
+                this.initializeData();
+                this.api.announceToScreenReader('Data Partitioning module loaded');
+            }
+
+            render() {
+                this.element.innerHTML = `
+                    <div class="partitioning-container">
+                        <div class="partitioning-toolbar">
+                            <div class="toolbar-section">
+                                <h1>Data Partitioning & Distribution</h1>
+                                <div class="route-tabs">
+                                    <button class="route-tab ${this.api.getCurrentRoute() === 'hash' ? 'active' : ''}" 
+                                            data-route="hash">Hash</button>
+                                    <button class="route-tab ${this.api.getCurrentRoute() === 'range' ? 'active' : ''}" 
+                                            data-route="range">Range</button>
+                                    <button class="route-tab ${this.api.getCurrentRoute() === 'custom' ? 'active' : ''}" 
+                                            data-route="custom">Custom</button>
+                                    <button class="route-tab ${this.api.getCurrentRoute() === 'challenges' ? 'active' : ''}" 
+                                            data-route="challenges">Challenges</button>
+                                </div>
+                            </div>
+                            
+                            <div class="toolbar-controls">
+                                <button id="start-flow" class="toolbar-btn">
+                                    <span>▶️</span> Start Flow
+                                </button>
+                                <button id="reset-partitions" class="toolbar-btn">
+                                    <span>🔄</span> Reset
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="partitioning-workspace">
+                            <!-- Top Row: Conveyor Belt Visualization -->
+                            <div class="conveyor-row">
+                                <div id="partitioning-conveyor" class="conveyor-container">
+                                    <div class="conveyor-input">
+                                        <h3>Input Data Stream</h3>
+                                        <div id="data-source" class="data-source"></div>
+                                    </div>
+                                    
+                                    <div class="conveyor-belt">
+                                        <div id="conveyor-track" class="conveyor-track"></div>
+                                        <div class="partitioning-logic">
+                                            <div id="partitioner-box" class="partitioner-box">
+                                                <span id="partitioner-label">Hash Function</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="partition-outputs">
+                                        <h3>Partitions</h3>
+                                        <div id="partition-bins" class="partition-bins"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Bottom Row: Controls and Info -->
+                            <div class="controls-row">
+                                <div class="controls-left">
+                                    <div id="partition-controls" class="controls-panel">
+                                        <h3>Partitioning Strategy</h3>
+                                        <div class="strategy-selector">
+                                            <select id="strategy-select">
+                                                <option value="hash">Hash Partitioning</option>
+                                                <option value="range">Range Partitioning</option>
+                                                <option value="custom">Custom Partitioning</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="control-group">
+                                            <label for="partition-count">Partition Count: <span id="partition-count-value">4</span></label>
+                                            <input type="range" id="partition-count" min="2" max="16" value="4" step="1">
+                                        </div>
+                                        
+                                        <div class="control-group">
+                                            <label for="data-skew">Data Skew: <span id="data-skew-value">0%</span></label>
+                                            <input type="range" id="data-skew" min="0" max="90" value="0" step="10">
+                                        </div>
+                                        
+                                        <div class="control-group">
+                                            <label for="animation-speed">Animation Speed: <span id="speed-value">1x</span></label>
+                                            <input type="range" id="animation-speed" min="0.5" max="3" value="1" step="0.5">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="dataset-selector">
+                                        <h3>Sample Dataset</h3>
+                                        <select id="dataset-select">
+                                            <option value="user-ids">User IDs</option>
+                                            <option value="timestamps">Timestamps</option>
+                                            <option value="skewed-data">Skewed Distribution</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="controls-center">
+                                    <div class="metrics-panel">
+                                        <h3>Distribution Metrics</h3>
+                                        <div id="partition-stats" class="partition-stats">
+                                            <div class="stat-item">
+                                                <span class="stat-label">Total Items:</span>
+                                                <span id="total-items" class="stat-value">0</span>
+                                            </div>
+                                            <div class="stat-item">
+                                                <span class="stat-label">Avg per Partition:</span>
+                                                <span id="avg-per-partition" class="stat-value">0</span>
+                                            </div>
+                                            <div class="stat-item">
+                                                <span class="stat-label">Load Balance:</span>
+                                                <span id="load-balance" class="stat-value">Perfect</span>
+                                            </div>
+                                            <div class="stat-item">
+                                                <span class="stat-label">Skew Factor:</span>
+                                                <span id="skew-factor" class="stat-value">0%</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="partition-chart">
+                                            <canvas id="distribution-chart" width="300" height="150"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="controls-right">
+                                    <div class="info-panel">
+                                        <h3>Strategy Details</h3>
+                                        <div id="strategy-info" class="strategy-info">
+                                            <div class="info-description"></div>
+                                            <div class="info-properties"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="challenge-panel" class="challenge-panel" style="display: none;">
+                                        <h3>Challenge</h3>
+                                        <div id="challenge-content"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                this.attachStyles();
+            }
+
+            attachStyles() {
+                if (document.getElementById('partitioning-styles')) return;
+                
+                const styles = document.createElement('style');
+                styles.id = 'partitioning-styles';
+                styles.textContent = `
+                    .partitioning-container {
+                        height: 100%;
+                        display: flex;
+                        flex-direction: column;
+                        font-family: var(--font-sans);
+                    }
+
+                    .partitioning-toolbar {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        padding: 1rem;
+                        background: var(--bg-secondary);
+                        border-bottom: 1px solid var(--border-default);
+                    }
+
+                    .partitioning-workspace {
+                        flex: 1;
+                        display: grid;
+                        grid-template-rows: 400px 1fr !important;
+                        gap: 1px;
+                        background: var(--border-default);
+                        min-height: 0;
+                    }
+
+                    .conveyor-row {
+                        background: var(--bg-primary);
+                        border: 1px solid var(--border-default);
+                        margin: 0.5rem;
+                        border-radius: 6px;
+                        overflow: hidden;
+                        padding: 1rem;
+                    }
+
+                    .conveyor-container {
+                        height: 100%;
+                        display: grid;
+                        grid-template-columns: 200px 1fr 200px;
+                        gap: 2rem;
+                        align-items: center;
+                    }
+
+                    .conveyor-input, .partition-outputs {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                    }
+
+                    .data-source {
+                        width: 150px;
+                        height: 200px;
+                        background: linear-gradient(135deg, var(--accent-subtle) 0%, var(--bg-secondary) 100%);
+                        border: 2px solid var(--accent-emphasis);
+                        border-radius: 8px;
+                        position: relative;
+                        overflow: hidden;
+                    }
+
+                    .conveyor-belt {
+                        height: 100%;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        position: relative;
+                    }
+
+                    .conveyor-track {
+                        height: 60px;
+                        background: linear-gradient(90deg, #444 0%, #666 50%, #444 100%);
+                        border: 2px solid var(--border-default);
+                        border-radius: 8px;
+                        position: relative;
+                        overflow: hidden;
+                    }
+
+                    .partitioning-logic {
+                        margin: 1rem 0;
+                        display: flex;
+                        justify-content: center;
+                    }
+
+                    .partitioner-box {
+                        background: var(--accent-emphasis);
+                        color: white;
+                        padding: 1rem 2rem;
+                        border-radius: 8px;
+                        font-weight: 600;
+                        box-shadow: var(--shadow-medium);
+                    }
+
+                    .partition-bins {
+                        display: grid;
+                        grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+                        gap: 0.5rem;
+                        width: 150px;
+                    }
+
+                    .partition-bin {
+                        height: 150px;
+                        background: var(--bg-secondary);
+                        border: 2px solid var(--border-default);
+                        border-radius: 6px;
+                        position: relative;
+                        display: flex;
+                        flex-direction: column;
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                    }
+
+                    .partition-bin:hover {
+                        border-color: var(--accent-emphasis);
+                        transform: translateY(-2px);
+                    }
+
+                    .partition-bin.selected {
+                        border-color: var(--accent-emphasis);
+                        background: var(--accent-subtle);
+                    }
+
+                    .partition-header {
+                        background: var(--bg-accent);
+                        padding: 0.25rem;
+                        text-align: center;
+                        font-size: 0.75rem;
+                        font-weight: 500;
+                        border-bottom: 1px solid var(--border-default);
+                    }
+
+                    .partition-content {
+                        flex: 1;
+                        padding: 0.25rem;
+                        overflow: hidden;
+                    }
+
+                    .controls-row {
+                        display: grid;
+                        grid-template-columns: 300px 1fr 280px !important;
+                        gap: 1px;
+                        background: var(--border-default);
+                    }
+
+                    .controls-left, .controls-center, .controls-right {
+                        background: var(--bg-primary);
+                        padding: 1rem;
+                        overflow-y: auto;
+                    }
+
+                    .controls-panel, .metrics-panel, .info-panel, .challenge-panel {
+                        background: var(--bg-secondary);
+                        border: 1px solid var(--border-default);
+                        border-radius: 6px;
+                        padding: 1rem;
+                        margin-bottom: 1rem;
+                    }
+
+                    .controls-panel h3, .metrics-panel h3, .info-panel h3, .challenge-panel h3 {
+                        margin: 0 0 1rem 0;
+                        font-size: 1rem;
+                        font-weight: 600;
+                        color: var(--text-primary);
+                    }
+
+                    .control-group {
+                        margin-bottom: 1rem;
+                    }
+
+                    .control-group label {
+                        display: block;
+                        margin-bottom: 0.5rem;
+                        font-size: 0.875rem;
+                        font-weight: 500;
+                        color: var(--text-primary);
+                    }
+
+                    .control-group input[type="range"] {
+                        width: 100%;
+                        margin-bottom: 0.5rem;
+                    }
+
+                    .control-group select {
+                        width: 100%;
+                        padding: 0.5rem;
+                        border: 1px solid var(--border-default);
+                        border-radius: 4px;
+                        background: var(--bg-primary);
+                        color: var(--text-primary);
+                    }
+
+                    .partition-stats {
+                        margin-bottom: 1rem;
+                    }
+
+                    .stat-item {
+                        display: flex;
+                        justify-content: space-between;
+                        padding: 0.25rem 0;
+                        border-bottom: 1px solid var(--border-muted);
+                    }
+
+                    .stat-item:last-child {
+                        border-bottom: none;
+                    }
+
+                    .stat-label {
+                        font-weight: 500;
+                        color: var(--text-primary);
+                    }
+
+                    .stat-value {
+                        color: var(--text-secondary);
+                        font-family: var(--font-mono);
+                    }
+
+                    .data-item {
+                        width: 20px;
+                        height: 20px;
+                        background: var(--accent-emphasis);
+                        border-radius: 4px;
+                        margin: 2px;
+                        display: inline-block;
+                        position: relative;
+                        transition: all 0.3s ease;
+                    }
+
+                    .data-item.moving {
+                        animation: moveOnBelt 2s linear;
+                    }
+
+                    @keyframes moveOnBelt {
+                        0% { transform: translateX(-100px); }
+                        50% { transform: translateX(0px); }
+                        100% { transform: translateX(100px); }
+                    }
+
+                    .route-tab {
+                        padding: 0.5rem 1rem;
+                        border: 1px solid var(--border-default);
+                        background: var(--bg-primary);
+                        color: var(--text-secondary);
+                        cursor: pointer;
+                        border-radius: 4px;
+                        font-size: 0.875rem;
+                        transition: all 0.2s ease;
+                        margin-right: 0.5rem;
+                    }
+
+                    .route-tab:hover {
+                        background: var(--bg-accent);
+                        color: var(--text-primary);
+                    }
+
+                    .route-tab.active {
+                        background: var(--accent-emphasis);
+                        color: white;
+                        border-color: var(--accent-emphasis);
+                    }
+
+                    .toolbar-btn {
+                        padding: 0.5rem 0.75rem;
+                        border: 1px solid var(--border-default);
+                        background: var(--bg-primary);
+                        color: var(--text-secondary);
+                        cursor: pointer;
+                        border-radius: 4px;
+                        font-size: 0.875rem;
+                        display: flex;
+                        align-items: center;
+                        gap: 0.25rem;
+                        transition: all 0.2s ease;
+                        margin-left: 0.5rem;
+                    }
+
+                    .toolbar-btn:hover {
+                        background: var(--bg-accent);
+                        color: var(--text-primary);
+                        border-color: var(--accent-emphasis);
+                    }
+                    
+                    .partition-chart {
+                        margin-top: 1rem;
+                    }
+                    
+                    .partition-chart canvas {
+                        border: 1px solid var(--border-default);
+                        border-radius: 4px;
+                        background: var(--bg-primary);
+                    }
+                    
+                    .challenge-btn {
+                        width: 100%;
+                        padding: 1rem;
+                        margin-bottom: 0.5rem;
+                        border: 1px solid var(--border-default);
+                        background: var(--bg-secondary);
+                        color: var(--text-primary);
+                        cursor: pointer;
+                        border-radius: 6px;
+                        text-align: left;
+                        transition: all 0.2s ease;
+                    }
+                    
+                    .challenge-btn:hover {
+                        background: var(--bg-accent);
+                        border-color: var(--accent-emphasis);
+                    }
+                    
+                    .challenge-title {
+                        font-weight: 500;
+                        margin-bottom: 0.25rem;
+                    }
+                    
+                    .challenge-desc {
+                        font-size: 0.875rem;
+                        color: var(--text-secondary);
+                        margin-bottom: 0.25rem;
+                    }
+                    
+                    .challenge-goal {
+                        font-size: 0.75rem;
+                        color: var(--accent-emphasis);
+                        font-weight: 500;
+                    }
+                    
+                    .challenge-status {
+                        padding: 0.75rem;
+                        border-radius: 4px;
+                        margin: 1rem 0;
+                        text-align: center;
+                        font-weight: 500;
+                    }
+                    
+                    .challenge-status.complete {
+                        background: var(--success-emphasis);
+                        color: white;
+                    }
+                    
+                    .challenge-status.incomplete {
+                        background: var(--attention-emphasis);
+                        color: white;
+                    }
+                    
+                    .challenge-hint {
+                        padding: 0.75rem;
+                        background: var(--accent-subtle);
+                        border-radius: 4px;
+                        margin: 1rem 0;
+                        font-size: 0.875rem;
+                        border-left: 3px solid var(--accent-emphasis);
+                    }
+                    
+                    .challenge-actions {
+                        display: flex;
+                        gap: 0.5rem;
+                        margin-top: 1rem;
+                    }
+                    
+                    .check-btn, .exit-btn {
+                        flex: 1;
+                        padding: 0.75rem;
+                        border: 1px solid var(--border-default);
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 0.875rem;
+                        transition: all 0.2s ease;
+                    }
+                    
+                    .check-btn {
+                        background: var(--accent-emphasis);
+                        color: white;
+                        border-color: var(--accent-emphasis);
+                    }
+                    
+                    .check-btn:hover {
+                        background: var(--accent-fg);
+                    }
+                    
+                    .exit-btn {
+                        background: var(--bg-primary);
+                        color: var(--text-secondary);
+                    }
+                    
+                    .exit-btn:hover {
+                        background: var(--bg-accent);
+                        color: var(--text-primary);
+                    }
+                    
+                    .property-item {
+                        display: flex;
+                        justify-content: space-between;
+                        padding: 0.25rem 0;
+                        border-bottom: 1px solid var(--border-muted);
+                    }
+                    
+                    .property-item:last-child {
+                        border-bottom: none;
+                    }
+                    
+                    .property-label {
+                        font-weight: 500;
+                        color: var(--text-primary);
+                    }
+                    
+                    .property-value {
+                        color: var(--text-secondary);
+                        font-family: var(--font-mono);
+                    }
+                `;
+                
+                document.head.appendChild(styles);
+            }
+
+            setupEventListeners() {
+                // Route switching
+                document.querySelectorAll('.route-tab').forEach(tab => {
+                    tab.addEventListener('click', (e) => {
+                        const route = e.target.dataset.route;
+                        this.switchRoute(route);
+                    });
+                });
+
+                // Controls
+                document.getElementById('partition-count').addEventListener('input', (e) => {
+                    this.partitionCount = parseInt(e.target.value);
+                    document.getElementById('partition-count-value').textContent = this.partitionCount;
+                    this.updatePartitions();
+                });
+
+                document.getElementById('strategy-select').addEventListener('change', (e) => {
+                    this.currentStrategy = e.target.value;
+                    this.updateStrategy();
+                });
+
+                document.getElementById('data-skew').addEventListener('input', (e) => {
+                    this.dataSkew = parseInt(e.target.value);
+                    document.getElementById('data-skew-value').textContent = this.dataSkew + '%';
+                    this.regenerateData();
+                });
+
+                document.getElementById('animation-speed').addEventListener('input', (e) => {
+                    this.animationSpeed = 1000 / parseFloat(e.target.value);
+                    document.getElementById('speed-value').textContent = e.target.value + 'x';
+                });
+
+                document.getElementById('dataset-select').addEventListener('change', (e) => {
+                    this.loadDataset(e.target.value);
+                });
+
+                // Toolbar buttons
+                document.getElementById('start-flow').addEventListener('click', () => {
+                    this.startDataFlow();
+                });
+
+                document.getElementById('reset-partitions').addEventListener('click', () => {
+                    this.resetPartitions();
+                });
+            }
+
+            initializeData() {
+                this.loadDataset('user-ids');
+                this.updatePartitions();
+                this.updateStrategy();
+            }
+
+            // Placeholder methods - will implement these next
+            hashPartition(item) { 
+                // Simple hash function - more realistic would use better distribution
+                const hash = this.simpleHash(item.value.toString());
+                return Math.abs(hash) % this.partitionCount; 
+            }
+            
+            rangePartition(item) { 
+                // Range partitioning based on value ranges
+                if (item.type === 'timestamp') {
+                    // For timestamps, use time-based ranges
+                    const timeRange = item.value % (24 * 60 * 60 * 1000); // Daily ranges
+                    return Math.floor((timeRange / (24 * 60 * 60 * 1000)) * this.partitionCount);
+                }
+                // For numeric values, use value-based ranges
+                const maxValue = 100;
+                const rangeSize = maxValue / this.partitionCount;
+                return Math.min(Math.floor(item.value / rangeSize), this.partitionCount - 1);
+            }
+            
+            customPartition(item) { 
+                // Custom partitioning - could be user-defined
+                if (item.type === 'user') {
+                    // Partition users by ID pattern
+                    return item.value % this.partitionCount;
+                } else if (item.type === 'skewed') {
+                    // For skewed data, try to balance better
+                    return (item.value * 7 + 13) % this.partitionCount;
+                }
+                return item.value % this.partitionCount; 
+            }
+
+            simpleHash(str) {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    const char = str.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash; // Convert to 32-bit integer
+                }
+                return hash;
+            }
+            generateSkewedData(count) {
+                const data = [];
+                for (let i = 0; i < count; i++) {
+                    // Create heavily skewed data - 80% of data in first 20% of range
+                    const skewThreshold = 0.8;
+                    const value = Math.random() < skewThreshold 
+                        ? Math.floor(Math.random() * 20)  // 80% in 0-19
+                        : Math.floor(Math.random() * 80) + 20; // 20% in 20-99
+                    
+                    data.push({
+                        id: `skewed_${i}`,
+                        value: value,
+                        type: 'skewed'
+                    });
+                }
+                return data;
+            }
+
+            validateLoadBalance() {
+                const partitionSizes = this.partitions.map(p => p.length);
+                const avg = partitionSizes.reduce((a, b) => a + b, 0) / partitionSizes.length;
+                const variance = partitionSizes.map(size => Math.abs(size - avg) / avg * 100);
+                const maxVariance = Math.max(...variance);
+                return maxVariance < 20;
+            }
+
+            validateHashPrediction() {
+                // Check if user correctly predicted hash assignments for test items
+                return this.predictionScore >= 8;
+            }
+
+            validateRangeDesign() {
+                // Check if range boundaries enable efficient queries
+                return this.rangeEfficiencyScore >= 80;
+            }
+
+            loadDataset(dataset) {
+                const datasetConfig = this.sampleDatasets[dataset];
+                if (!datasetConfig) return;
+                
+                this.dataItems = [...datasetConfig.data];
+                this.redistributeData();
+                this.updateStats();
+                this.renderDataSource();
+            }
+
+            updatePartitions() {
+                this.partitions = Array.from({length: this.partitionCount}, () => []);
+                this.redistributeData();
+                this.renderPartitionBins();
+                this.updateStats();
+            }
+
+            updateStrategy() {
+                const strategy = this.partitioningStrategies[this.currentStrategy];
+                const partitionerLabel = document.getElementById('partitioner-label');
+                const strategyInfo = document.getElementById('strategy-info');
+                
+                if (partitionerLabel) {
+                    partitionerLabel.textContent = strategy.name;
+                    document.getElementById('partitioner-box').style.backgroundColor = strategy.color;
+                }
+                
+                if (strategyInfo) {
+                    strategyInfo.innerHTML = `
+                        <div class="info-description">${strategy.description}</div>
+                        <div class="info-properties">
+                            <div class="property-item">
+                                <span class="property-label">Type:</span>
+                                <span class="property-value">${this.currentStrategy.charAt(0).toUpperCase() + this.currentStrategy.slice(1)}</span>
+                            </div>
+                            <div class="property-item">
+                                <span class="property-label">Deterministic:</span>
+                                <span class="property-value">${this.currentStrategy === 'hash' ? 'Yes' : 'Configurable'}</span>
+                            </div>
+                            <div class="property-item">
+                                <span class="property-label">Load Balance:</span>
+                                <span class="property-value">${this.currentStrategy === 'hash' ? 'Good' : 'Variable'}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                this.redistributeData();
+                this.updateStats();
+            }
+
+            regenerateData() {
+                const currentDataset = document.getElementById('dataset-select').value;
+                if (currentDataset === 'skewed-data') {
+                    this.sampleDatasets['skewed-data'].data = this.generateSkewedData(100);
+                    this.loadDataset('skewed-data');
+                }
+            }
+
+            redistributeData() {
+                // Clear all partitions
+                this.partitions = Array.from({length: this.partitionCount}, () => []);
+                
+                // Distribute data items based on current strategy
+                this.dataItems.forEach(item => {
+                    const strategy = this.partitioningStrategies[this.currentStrategy];
+                    const partitionIndex = strategy.partition(item);
+                    const clampedIndex = Math.max(0, Math.min(partitionIndex, this.partitionCount - 1));
+                    this.partitions[clampedIndex].push(item);
+                });
+                
+                this.renderPartitionBins();
+                this.updateDistributionChart();
+            }
+
+            renderDataSource() {
+                const container = document.getElementById('data-source');
+                if (!container) return;
+                
+                container.innerHTML = '';
+                const sampleItems = this.dataItems.slice(0, 20); // Show first 20 items
+                
+                sampleItems.forEach(item => {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'data-item';
+                    itemEl.title = `${item.id}: ${item.value}`;
+                    container.appendChild(itemEl);
+                });
+                
+                if (this.dataItems.length > 20) {
+                    const moreEl = document.createElement('div');
+                    moreEl.className = 'data-item';
+                    moreEl.style.background = 'var(--text-muted)';
+                    moreEl.title = `... and ${this.dataItems.length - 20} more items`;
+                    container.appendChild(moreEl);
+                }
+            }
+
+            renderPartitionBins() {
+                const container = document.getElementById('partition-bins');
+                if (!container) return;
+                
+                container.innerHTML = '';
+                
+                for (let i = 0; i < this.partitionCount; i++) {
+                    const bin = document.createElement('div');
+                    bin.className = 'partition-bin';
+                    bin.dataset.partitionId = i;
+                    
+                    if (this.selectedPartition === i) {
+                        bin.classList.add('selected');
+                    }
+                    
+                    bin.innerHTML = `
+                        <div class="partition-header">P${i}</div>
+                        <div class="partition-content" id="partition-${i}"></div>
+                    `;
+                    
+                    bin.addEventListener('click', () => {
+                        this.selectedPartition = this.selectedPartition === i ? null : i;
+                        this.renderPartitionBins();
+                        this.highlightPartitionData(i);
+                    });
+                    
+                    container.appendChild(bin);
+                    
+                    // Render items in partition
+                    const content = document.getElementById(`partition-${i}`);
+                    const partitionData = this.partitions[i] || [];
+                    const maxVisible = 20;
+                    
+                    partitionData.slice(0, maxVisible).forEach(item => {
+                        const itemEl = document.createElement('div');
+                        itemEl.className = 'data-item';
+                        itemEl.style.width = '8px';
+                        itemEl.style.height = '8px';
+                        itemEl.title = `${item.id}: ${item.value}`;
+                        content.appendChild(itemEl);
+                    });
+                    
+                    if (partitionData.length > maxVisible) {
+                        const moreEl = document.createElement('div');
+                        moreEl.style.fontSize = '0.6rem';
+                        moreEl.style.color = 'var(--text-muted)';
+                        moreEl.style.textAlign = 'center';
+                        moreEl.textContent = `+${partitionData.length - maxVisible}`;
+                        content.appendChild(moreEl);
+                    }
+                }
+            }
+
+            updateStats() {
+                const totalItems = this.dataItems.length;
+                const avgPerPartition = Math.round(totalItems / this.partitionCount);
+                
+                // Calculate load balance
+                const partitionSizes = this.partitions.map(p => p.length);
+                const maxSize = Math.max(...partitionSizes);
+                const minSize = Math.min(...partitionSizes);
+                const variance = maxSize > 0 ? ((maxSize - minSize) / maxSize * 100) : 0;
+                
+                let balanceText = 'Perfect';
+                if (variance > 30) balanceText = 'Poor';
+                else if (variance > 15) balanceText = 'Fair';
+                else if (variance > 5) balanceText = 'Good';
+                
+                // Update DOM
+                document.getElementById('total-items').textContent = totalItems;
+                document.getElementById('avg-per-partition').textContent = avgPerPartition;
+                document.getElementById('load-balance').textContent = balanceText;
+                document.getElementById('skew-factor').textContent = Math.round(variance) + '%';
+            }
+
+            updateDistributionChart() {
+                const canvas = document.getElementById('distribution-chart');
+                if (!canvas) return;
+                
+                const ctx = canvas.getContext('2d');
+                const width = canvas.width;
+                const height = canvas.height;
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, width, height);
+                
+                // Draw chart
+                const partitionSizes = this.partitions.map(p => p.length);
+                const maxSize = Math.max(...partitionSizes, 1);
+                const barWidth = width / this.partitionCount;
+                
+                partitionSizes.forEach((size, i) => {
+                    const barHeight = (size / maxSize) * (height - 40);
+                    const x = i * barWidth;
+                    const y = height - barHeight - 20;
+                    
+                    // Bar
+                    ctx.fillStyle = this.selectedPartition === i ? '#0969da' : '#6e7781';
+                    ctx.fillRect(x + 2, y, barWidth - 4, barHeight);
+                    
+                    // Label
+                    ctx.fillStyle = '#24292f';
+                    ctx.font = '10px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`P${i}`, x + barWidth/2, height - 5);
+                    ctx.fillText(size.toString(), x + barWidth/2, y - 5);
+                });
+            }
+
+            highlightPartitionData(partitionIndex) {
+                // Visual feedback for selected partition
+                this.api.announceToScreenReader(`Selected partition ${partitionIndex} with ${this.partitions[partitionIndex].length} items`);
+            }
+
+            startDataFlow() {
+                if (this.isAnimating) return;
+                
+                this.isAnimating = true;
+                const items = this.dataItems.slice(0, 10); // Animate first 10 items
+                
+                items.forEach((item, index) => {
+                    setTimeout(() => {
+                        this.animateItemFlow(item);
+                    }, index * (this.animationSpeed / 10));
+                });
+                
+                setTimeout(() => {
+                    this.isAnimating = false;
+                }, items.length * (this.animationSpeed / 10) + 1000);
+            }
+
+            animateItemFlow(item) {
+                const track = document.getElementById('conveyor-track');
+                if (!track) return;
+                
+                const itemEl = document.createElement('div');
+                itemEl.className = 'data-item moving';
+                itemEl.style.position = 'absolute';
+                itemEl.style.top = '20px';
+                itemEl.style.left = '0px';
+                itemEl.title = `${item.id}: ${item.value}`;
+                
+                track.appendChild(itemEl);
+                
+                // Remove after animation
+                setTimeout(() => {
+                    if (itemEl.parentNode) {
+                        itemEl.parentNode.removeChild(itemEl);
+                    }
+                }, 2000);
+            }
+
+            resetPartitions() {
+                this.partitions = Array.from({length: this.partitionCount}, () => []);
+                this.selectedPartition = null;
+                this.renderPartitionBins();
+                this.updateStats();
+                this.updateDistributionChart();
+                this.api.announceToScreenReader('Partitions reset');
+            }
+
+            switchRoute(route) {
+                // Update active tab
+                document.querySelectorAll('.route-tab').forEach(tab => {
+                    tab.classList.toggle('active', tab.dataset.route === route);
+                });
+                
+                // Show/hide challenge panel
+                const challengePanel = document.getElementById('challenge-panel');
+                if (route === 'challenges') {
+                    challengePanel.style.display = 'block';
+                    this.showChallenges();
+                } else {
+                    challengePanel.style.display = 'none';
+                }
+                
+                // Update strategy based on route
+                if (route === 'hash') {
+                    this.currentStrategy = 'hash';
+                    document.getElementById('strategy-select').value = 'hash';
+                    this.updateStrategy();
+                } else if (route === 'range') {
+                    this.currentStrategy = 'range';
+                    document.getElementById('strategy-select').value = 'range';
+                    this.updateStrategy();
+                } else if (route === 'custom') {
+                    this.currentStrategy = 'custom';
+                    document.getElementById('strategy-select').value = 'custom';
+                    this.updateStrategy();
+                }
+                
+                this.api.navigateToRoute(route);
+            }
+
+            showChallenges() {
+                const content = document.getElementById('challenge-content');
+                if (!content) return;
+                
+                if (!this.currentChallenge) {
+                    content.innerHTML = `
+                        <div class="challenge-list">
+                            <h4>Partitioning Challenges</h4>
+                            <p>Test your partitioning strategies:</p>
+                            ${this.challenges.map(challenge => `
+                                <button class="challenge-btn" onclick="window.partitioningModule.startChallenge('${challenge.id}')">
+                                    <div class="challenge-title">${challenge.title}</div>
+                                    <div class="challenge-desc">${challenge.description}</div>
+                                    <div class="challenge-goal">${challenge.goal}</div>
+                                </button>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    this.renderCurrentChallenge();
+                }
+            }
+
+            startChallenge(challengeId) {
+                this.currentChallenge = this.challenges.find(c => c.id === challengeId);
+                if (this.currentChallenge) {
+                    this.loadDataset(this.currentChallenge.dataset);
+                    this.renderCurrentChallenge();
+                    this.api.announceToScreenReader(`Started challenge: ${this.currentChallenge.title}`);
+                }
+            }
+
+            renderCurrentChallenge() {
+                const content = document.getElementById('challenge-content');
+                const isComplete = this.currentChallenge.validator();
+                
+                content.innerHTML = `
+                    <div class="challenge-active">
+                        <h4>${this.currentChallenge.title}</h4>
+                        <p class="challenge-description">${this.currentChallenge.description}</p>
+                        <p class="challenge-goal"><strong>Goal:</strong> ${this.currentChallenge.goal}</p>
+                        
+                        <div class="challenge-status ${isComplete ? 'complete' : 'incomplete'}">
+                            <div class="status-indicator">
+                                ${isComplete ? '✅' : '⏳'}
+                                ${isComplete ? 'Challenge Complete!' : 'In Progress'}
+                            </div>
+                        </div>
+                        
+                        ${!isComplete ? `
+                            <div class="challenge-hint">
+                                <strong>Hint:</strong> ${this.currentChallenge.hint}
+                            </div>
+                        ` : ''}
+                        
+                        <div class="challenge-actions">
+                            <button onclick="window.partitioningModule.checkChallenge()" class="check-btn">
+                                Check Solution
+                            </button>
+                            <button onclick="window.partitioningModule.exitChallenge()" class="exit-btn">
+                                Exit Challenge
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            checkChallenge() {
+                if (this.currentChallenge) {
+                    const isComplete = this.currentChallenge.validator();
+                    this.renderCurrentChallenge();
+                    
+                    if (isComplete) {
+                        this.api.announceToScreenReader('Challenge completed successfully!');
+                    } else {
+                        this.api.announceToScreenReader('Challenge not yet complete. Keep adjusting your strategy!');
+                    }
+                }
+            }
+
+            exitChallenge() {
+                this.currentChallenge = null;
+                this.showChallenges();
+                this.api.announceToScreenReader('Exited challenge mode');
+            }
+        }
+
+        window.partitioningModule = null;
+
         window.SparkLab.registerModule({
             id: 'rdd-lineage',
             title: 'RDD Lineage',
@@ -2454,6 +3623,59 @@
                     'Apache Spark RDD Programming Guide',
                     'Spark Performance Tuning',
                     'Resilient Distributed Datasets Paper'
+                ]
+            }
+        });
+
+        window.SparkLab.registerModule({
+            id: 'data-partitioning',
+            title: 'Data Partitioning',
+            subtitle: 'Visualize data distribution strategies',
+            icon: '🏭',
+            routes: [
+                { id: 'hash', label: 'Hash Partitioning' },
+                { id: 'range', label: 'Range Partitioning' },
+                { id: 'custom', label: 'Custom Partitioning' },
+                { id: 'challenges', label: 'Challenges' }
+            ],
+            init(element, api) {
+                const partitioningModule = new DataPartitioningModule(element, api);
+                window.partitioningModule = partitioningModule;
+                partitioningModule.init();
+            },
+            tests() {
+                return [
+                    {
+                        name: 'Module renders without errors',
+                        run() {
+                            return document.getElementById('module-data-partitioning') !== null;
+                        }
+                    },
+                    {
+                        name: 'Conveyor belt visualization exists',
+                        run() {
+                            return document.querySelector('#partitioning-conveyor') !== null;
+                        }
+                    },
+                    {
+                        name: 'Partition controls exist',
+                        run() {
+                            return document.querySelector('#partition-controls') !== null;
+                        }
+                    }
+                ];
+            },
+            about: {
+                learningOutcomes: [
+                    'Visualize how data distributes across cluster nodes',
+                    'Understand partitioning strategies (hash, range, custom)',
+                    'Recognize data skew and load balancing issues',
+                    'Design optimal partitioning for different workloads'
+                ],
+                references: [
+                    'Spark Partitioning Deep Dive',
+                    'Data Skew Mitigation Strategies',
+                    'Consistent Hashing in Distributed Systems'
                 ]
             }
         });
