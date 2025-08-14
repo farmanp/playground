@@ -833,7 +833,7 @@
                     'union': {
                         name: 'union',
                         type: 'narrow',
-                        description: 'Combine two RDDs',
+                        description: 'Combine two RDDs (partitions = sum of inputs)',
                         codeTemplate: 'rdd1.union(rdd2)',
                         inputPlaceholder: '',
                         complexity: 'O(1)',
@@ -854,6 +854,36 @@
                         codeTemplate: 'rdd.sortBy(x => x)',
                         inputPlaceholder: 'x => x',
                         complexity: 'O(n log n)'
+                    }
+                };
+
+                this.actionTemplates = {
+                    'count': {
+                        name: 'count',
+                        type: 'action',
+                        description: 'Count the number of elements in the RDD',
+                        codeTemplate: 'rdd.count()',
+                        inputPlaceholder: '',
+                        complexity: 'O(n)',
+                        triggersStage: true
+                    },
+                    'collect': {
+                        name: 'collect',
+                        type: 'action',
+                        description: 'Return all elements as an array to the driver',
+                        codeTemplate: 'rdd.collect()',
+                        inputPlaceholder: '',
+                        complexity: 'O(n)',
+                        triggersStage: true
+                    },
+                    'save': {
+                        name: 'saveAsTextFile',
+                        type: 'action', 
+                        description: 'Save RDD to distributed file system',
+                        codeTemplate: 'rdd.saveAsTextFile("path")',
+                        inputPlaceholder: '"output/path"',
+                        complexity: 'O(n)',
+                        triggersStage: true
                     }
                 };
 
@@ -952,6 +982,10 @@
                                             <div class="operation-category">
                                                 <h4>Transformations</h4>
                                                 <div class="operation-grid" id="transformation-ops"></div>
+                                            </div>
+                                            <div class="operation-category">
+                                                <h4>Actions</h4>
+                                                <div class="operation-grid" id="action-ops"></div>
                                             </div>
                                             <div class="operation-form" id="operation-form" style="display: none;">
                                                 <div class="form-header">
@@ -1176,6 +1210,11 @@
                             border-left: 3px solid var(--success-emphasis);
                         }
 
+                        .operation-btn.action {
+                            border-left: 3px solid var(--danger-emphasis);
+                            background: var(--bg-accent);
+                        }
+
                         .operation-form {
                             background: var(--bg-secondary);
                             border: 1px solid var(--border-default);
@@ -1207,6 +1246,11 @@
 
                         .operation-type.narrow {
                             background: var(--success-emphasis);
+                            color: white;
+                        }
+
+                        .operation-type.action {
+                            background: var(--danger-emphasis);
                             color: white;
                         }
 
@@ -1521,11 +1565,13 @@
                     id: 'rdd_0',
                     name: 'Initial Data',
                     operation: 'parallelize',
-                    operationType: 'action',
+                    operationType: 'source',
                     data: this.sampleData.numbers,
                     partitions: 4,
                     dependencies: [],
                     cached: false,
+                    stageId: 0,
+                    isShuffleBoundary: false,
                     x: 280,
                     y: 160
                 };
@@ -1539,16 +1585,28 @@
             }
 
             renderOperations() {
-                const container = this.element.querySelector('#transformation-ops');
-                container.innerHTML = '';
+                const transformationContainer = this.element.querySelector('#transformation-ops');
+                transformationContainer.innerHTML = '';
 
                 Object.entries(this.operationTemplates).forEach(([key, op]) => {
                     const btn = document.createElement('button');
                     btn.className = `operation-btn ${op.type}`;
                     btn.textContent = op.name;
                     btn.title = op.description;
-                    btn.addEventListener('click', () => this.showOperationForm(key));
-                    container.appendChild(btn);
+                    btn.addEventListener('click', () => this.showOperationForm(key, 'transformation'));
+                    transformationContainer.appendChild(btn);
+                });
+
+                const actionContainer = this.element.querySelector('#action-ops');
+                actionContainer.innerHTML = '';
+
+                Object.entries(this.actionTemplates).forEach(([key, op]) => {
+                    const btn = document.createElement('button');
+                    btn.className = `operation-btn ${op.type}`;
+                    btn.textContent = op.name;
+                    btn.title = op.description;
+                    btn.addEventListener('click', () => this.showOperationForm(key, 'action'));
+                    actionContainer.appendChild(btn);
                 });
             }
 
@@ -1568,8 +1626,10 @@
                 });
             }
 
-            showOperationForm(operationKey) {
-                const operation = this.operationTemplates[operationKey];
+            showOperationForm(operationKey, operationType = 'transformation') {
+                const operation = operationType === 'action' 
+                    ? this.actionTemplates[operationKey] 
+                    : this.operationTemplates[operationKey];
                 if (!operation) return;
 
                 const form = this.element.querySelector('#operation-form');
@@ -1613,6 +1673,19 @@
                     inputs.appendChild(functionInput);
                 }
 
+                // Add partition count input for wide transformations
+                if (operation.type === 'wide' && operationType === 'transformation') {
+                    const partitionInput = document.createElement('div');
+                    partitionInput.className = 'input-group';
+                    partitionInput.innerHTML = `
+                        <label for="num-partitions">Output Partitions:</label>
+                        <input type="number" id="num-partitions" 
+                               min="1" max="64" value="4" 
+                               placeholder="Number of output partitions">
+                    `;
+                    inputs.appendChild(partitionInput);
+                }
+
                 const sourceRddSelect = document.createElement('div');
                 sourceRddSelect.className = 'input-group';
                 sourceRddSelect.innerHTML = `
@@ -1630,7 +1703,7 @@
                 form.style.display = 'block';
 
                 this.element.querySelector('#apply-operation').onclick = () => {
-                    this.applyOperation(operationKey);
+                    this.applyOperation(operationKey, operationType);
                 };
 
                 this.element.querySelector('#cancel-operation').onclick = () => {
@@ -1638,12 +1711,22 @@
                 };
             }
 
-            applyOperation(operationKey) {
-                const operation = this.operationTemplates[operationKey];
+            applyOperation(operationKey, operationType = 'transformation') {
+                const operation = operationType === 'action' 
+                    ? this.actionTemplates[operationKey] 
+                    : this.operationTemplates[operationKey];
                 const sourceRddId = this.element.querySelector('#source-rdd').value;
                 const sourceRdd = this.rdds.get(sourceRddId);
 
                 if (!sourceRdd) return;
+
+                if (operationType === 'action') {
+                    // Actions trigger stage computation and execution
+                    const stages = this.computeStages(sourceRdd);
+                    this.showActionResult(operation, sourceRdd, stages);
+                    this.element.querySelector('#operation-form').style.display = 'none';
+                    return;
+                }
 
                 const newRddId = `rdd_${this.rddCounter++}`;
                 const newRdd = {
@@ -1652,9 +1735,11 @@
                     operation: operation.name,
                     operationType: 'transformation',
                     dependencies: [sourceRddId],
-                    partitions: operation.type === 'wide' ? Math.max(4, sourceRdd.partitions) : sourceRdd.partitions,
+                    partitions: this.calculatePartitions(operation, sourceRdd),
                     cached: false,
                     transformationType: operation.type,
+                    isShuffleBoundary: operation.type === 'wide',
+                    stageId: this.computeStageId(operation, sourceRdd),
                     x: sourceRdd.x + 300,
                     y: sourceRdd.y + (Math.random() - 0.5) * 120
                 };
@@ -1665,6 +1750,17 @@
                         newRdd.dependencies.push(secondRddId);
                         const secondRdd = this.rdds.get(secondRddId);
                         newRdd.y = Math.max(sourceRdd.y, secondRdd.y) + 80;
+                        
+                        // Special handling for join operations
+                        if (operation.name === 'join') {
+                            newRdd.partitionerId = this.generatePartitionerId(sourceRdd, secondRdd);
+                            newRdd.shuffleType = 'hash-shuffle';
+                        } else if (operation.name === 'union') {
+                            // Union partitions = sum of input partitions
+                            newRdd.partitions = sourceRdd.partitions + secondRdd.partitions;
+                            newRdd.transformationType = 'narrow'; // Union is narrow
+                            newRdd.isShuffleBoundary = false;
+                        }
                     }
                 }
 
@@ -1828,17 +1924,41 @@
                         <span class="property-value">${rdd.operationType}</span>
                     </div>
                     <div class="inspector-property">
+                        <span class="property-label">Stage ID</span>
+                        <span class="property-value">${rdd.stageId !== undefined ? rdd.stageId : 'N/A'}</span>
+                    </div>
+                    <div class="inspector-property">
                         <span class="property-label">Partitions</span>
+                        <span class="property-value">${rdd.partitions}</span>
+                    </div>
+                    <div class="inspector-property">
+                        <span class="property-label">Output Partitions</span>
                         <span class="property-value">${rdd.partitions}</span>
                     </div>
                     <div class="inspector-property">
                         <span class="property-label">Dependencies</span>
                         <span class="property-value">${rdd.dependencies.length}</span>
                     </div>
+                    <div class="inspector-property">
+                        <span class="property-label">Shuffle Boundary</span>
+                        <span class="property-value">${rdd.isShuffleBoundary ? 'Yes' : 'No'}</span>
+                    </div>
                     ${rdd.transformationType ? `
                         <div class="inspector-property">
                             <span class="property-label">Transformation</span>
                             <span class="property-value">${rdd.transformationType}</span>
+                        </div>
+                    ` : ''}
+                    ${rdd.partitionerId ? `
+                        <div class="inspector-property">
+                            <span class="property-label">Partitioner ID</span>
+                            <span class="property-value">${rdd.partitionerId}</span>
+                        </div>
+                    ` : ''}
+                    ${rdd.shuffleType ? `
+                        <div class="inspector-property">
+                            <span class="property-label">Shuffle Type</span>
+                            <span class="property-value">${rdd.shuffleType}</span>
                         </div>
                     ` : ''}
                     ${rdd.function ? `
@@ -2230,7 +2350,7 @@
                     id: 'rdd_1',
                     name: 'Key-Value Pairs',
                     operation: 'parallelize',
-                    operationType: 'action',
+                    operationType: 'source',
                     data: this.sampleData.pairs,
                     partitions: 4,
                     dependencies: [],
@@ -2255,7 +2375,7 @@
                     id: 'rdd_1',
                     name: 'Employees',
                     operation: 'parallelize',
-                    operationType: 'action',
+                    operationType: 'source',
                     data: this.sampleData.employees,
                     partitions: 2,
                     dependencies: [],
@@ -2268,7 +2388,7 @@
                     id: 'rdd_2',
                     name: 'Scores',
                     operation: 'parallelize',
-                    operationType: 'action',
+                    operationType: 'source',
                     data: this.sampleData.scores,
                     partitions: 2,
                     dependencies: [],
@@ -2293,7 +2413,7 @@
                     id: 'rdd_1',
                     name: 'Raw Data',
                     operation: 'textFile',
-                    operationType: 'action',
+                    operationType: 'source',
                     data: ['line1', 'line2', 'line3'],
                     partitions: 8,
                     dependencies: [],
@@ -2353,6 +2473,78 @@
                 this.saveToHistory();
                 this.renderDAG();
                 this.generateCode();
+            }
+
+            // New helper methods for stage computation and enhanced functionality
+            calculatePartitions(operation, sourceRdd) {
+                if (operation.type === 'wide') {
+                    const numPartitionsInput = document.querySelector('#num-partitions');
+                    return numPartitionsInput ? parseInt(numPartitionsInput.value) : Math.max(4, sourceRdd.partitions);
+                }
+                return sourceRdd.partitions;
+            }
+
+            computeStageId(operation, sourceRdd) {
+                if (operation.type === 'wide') {
+                    // Wide transformations create new stages
+                    return this.getNextStageId();
+                }
+                return sourceRdd.stageId || 0;
+            }
+
+            getNextStageId() {
+                const stageIds = Array.from(this.rdds.values()).map(rdd => rdd.stageId || 0);
+                return Math.max(...stageIds, 0) + 1;
+            }
+
+            computeStages(targetRdd) {
+                const stages = [];
+                const visited = new Set();
+                
+                const traverseStages = (rdd, currentStage = []) => {
+                    if (visited.has(rdd.id)) return;
+                    visited.add(rdd.id);
+                    
+                    currentStage.push(rdd);
+                    
+                    if (rdd.isShuffleBoundary || rdd.operationType === 'source') {
+                        stages.push({
+                            id: rdd.stageId || stages.length,
+                            rdds: [...currentStage],
+                            shuffleBoundary: rdd.isShuffleBoundary
+                        });
+                        currentStage = [];
+                    }
+                    
+                    rdd.dependencies.forEach(depId => {
+                        const depRdd = this.rdds.get(depId);
+                        if (depRdd) {
+                            traverseStages(depRdd, currentStage);
+                        }
+                    });
+                };
+                
+                traverseStages(targetRdd);
+                return stages;
+            }
+
+            generatePartitionerId(rdd1, rdd2) {
+                // Generate a consistent partitioner ID for join operations
+                return `hash-partitioner-${Math.min(rdd1.partitions, rdd2.partitions)}`;
+            }
+
+            showActionResult(operation, sourceRdd, stages) {
+                const result = {
+                    action: operation.name,
+                    sourceRdd: sourceRdd.id,
+                    stagesTriggered: stages.length,
+                    executionPlan: stages
+                };
+                
+                this.api.announceToScreenReader(`Executed ${operation.name} action, triggering ${stages.length} stages`);
+                
+                // You could show this in a modal or status area
+                console.log('Action execution plan:', result);
             }
         }
 
